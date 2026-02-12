@@ -824,54 +824,6 @@ export default function App() {
   const [shareStatus, setShareStatus] = useState("");
   const [isPro, setIsPro] = useState(false);
   
-  // --- Store-only gate (paid app wrapper model) ---
-  // Full app is intended for store-wrapped builds. If opened in a normal browser, show a store page.
-  const HUB_URL = "https://www.clearahead.app";
-  const searchParams = new URLSearchParams(window.location.search || "");
-  const devBypass = searchParams.get("store") === "1"; // internal testing only (not advertised)
-  const isTwaLaunch = (document.referrer || "").startsWith("android-app://");
-  const allowFullApp = devBypass || isTwaLaunch;
-
-  if (!allowFullApp) {
-    return (
-      <div style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "24px"
-      }}>
-        <div style={{
-          maxWidth: "520px",
-          width: "100%",
-          padding: "20px",
-          borderRadius: "16px",
-          background: "rgba(11,18,32,0.92)",
-          border: "1px solid rgba(255,255,255,0.10)",
-          boxShadow: "0 10px 30px rgba(0,0,0,0.35)"
-        }}>
-          <h1 style={{ margin: "0 0 10px 0", fontSize: "22px" }}>ClearAhead Basic</h1>
-          <p style={{ margin: "0 0 14px 0", lineHeight: 1.5, opacity: 0.9 }}>
-            ClearAhead is available via the app stores. Please visit our website to choose your store and download the app.
-          </p>
-          <a
-            href={HUB_URL}
-            style={{
-              display: "inline-block",
-              textDecoration: "none",
-              padding: "10px 14px",
-              borderRadius: "12px",
-              background: "rgba(140, 82, 255, 0.95)",
-              color: "white",
-              fontWeight: 600
-            }}
-          >
-            Go to clearahead.app
-          </a>
-        </div>
-      </div>
-    );
-  }
 // Pro entitlement is decided at build-time (two-app model):
   // - ClearAhead Basic: VITE_CLEARAHEAD_EDITION="basic" (or unset)
   // - ClearAhead Pro:   VITE_CLEARAHEAD_EDITION="pro"
