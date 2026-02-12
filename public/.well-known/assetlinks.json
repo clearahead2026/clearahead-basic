@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.clearahead.basic",
+      "sha256_cert_fingerprints": [
+        "00:04:CA:51:8D:05:0A:37:DE:A3:DA:71:F2:24:DA:B1:13:E7:4D:5B:19:8F:25:BA:5A:6D:17:2F:06:AE:7D:6C"
+      ]
+    }
+  }
+]
