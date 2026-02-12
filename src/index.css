@@ -1,0 +1,38 @@
+/* index.css — ClearAhead global base */
+
+/* Global sizing fix */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* We are intentionally designing a dark UI */
+  color-scheme: dark;
+
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+
+  /* Don’t let old Vite layout rules interfere */
+  display: block;
+
+  /* Page background behind the app shell */
+  background: #050614;
+  color: rgba(241, 245, 249, 0.92);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+

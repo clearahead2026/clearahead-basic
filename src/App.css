@@ -1,0 +1,596 @@
+/* =========================================================
+   ClearAhead — App Theme + Layout + Motion (Design only)
+   Colour direction: Purple / Navy, Silver, Light-blue highlights
+   Floating rounded cards, premium app feel
+   ========================================================= */
+
+:root {
+  /* Brand palette */
+  --ca-navy: #0b1026;
+  --ca-navy-2: #101a3a;
+
+  --ca-purple: #5b2cff;
+  --ca-purple-2: #7a4dff;
+
+  --ca-ice: #cfe7ff;       /* light blue highlight */
+  --ca-silver: #e8edf6;    /* soft silver */
+  --ca-silver-2: #f3f6fb;  /* lighter silver */
+
+  /* Text */
+  --ca-text: rgba(255, 255, 255, 0.92);
+  --ca-text-soft: rgba(255, 255, 255, 0.72);
+  --ca-text-dark: #161a25;
+
+  /* Surfaces (cards sit on these) */
+  --ca-surface: rgba(255, 255, 255, 0.92);
+  --ca-surface-2: rgba(255, 255, 255, 0.86);
+
+  /* Borders / glow */
+  --ca-border: rgba(255, 255, 255, 0.18);
+  --ca-border-strong: rgba(207, 231, 255, 0.35);
+  --ca-glow: rgba(122, 77, 255, 0.35);
+  --ca-glow-ice: rgba(207, 231, 255, 0.45);
+
+  /* Shadows */
+  --ca-shadow-1: 0 10px 30px rgba(0, 0, 0, 0.16);
+  --ca-shadow-2: 0 18px 60px rgba(0, 0, 0, 0.22);
+
+  /* Radius + spacing */
+  --ca-radius-lg: 22px;
+  --ca-radius-md: 16px;
+  --ca-radius-sm: 12px;
+
+  --ca-pad-lg: 24px;
+  --ca-pad-md: 18px;
+  --ca-pad-sm: 12px;
+
+  /* Motion */
+  --ca-ease: cubic-bezier(0.22, 0.9, 0.2, 1);
+  --ca-dur: 320ms;
+}
+
+/* Base */
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ca-navy);
+  color: var(--ca-text);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+/* =========================================================
+   Global text readability upgrade (design only)
+   ========================================================= */
+
+/* Default body text: slightly larger & heavier */
+body {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* Paragraphs and helper text */
+p,
+li,
+span,
+label,
+div {
+  font-weight: 500;
+}
+
+/* Headings feel solid and calm, not shouty */
+h1 {
+  font-weight: 900;
+}
+h2 {
+  font-weight: 800;
+}
+h3 {
+  font-weight: 700;
+}
+
+/* Small UI text (tips, meta info, footnotes) */
+small,
+.ca-subtitle {
+  font-weight: 500;
+}
+
+/* Inputs & buttons: easier to read on mobile */
+input,
+select,
+textarea,
+button {
+  font-weight: 600;
+}
+* {
+  box-sizing: border-box;
+}
+
+/* Root container sizing */
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0;
+  text-align: center;
+}
+
+/* =========================================================
+   App Shell background (premium dark gradient + soft glows)
+   ========================================================= */
+.appShell {
+  min-height: 100vh;
+  padding: 28px 18px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  background:
+    radial-gradient(900px 520px at 18% 12%, rgba(122, 77, 255, 0.28), transparent 58%),
+    radial-gradient(820px 480px at 82% 18%, rgba(207, 231, 255, 0.20), transparent 55%),
+    radial-gradient(900px 620px at 48% 110%, rgba(91, 44, 255, 0.14), transparent 55%),
+    linear-gradient(180deg, var(--ca-navy) 0%, var(--ca-navy-2) 100%);
+}
+
+/* A centered app “canvas” inside appShell */
+.ca-container {
+  width: 100%;
+  max-width: 760px;
+  text-align: left;
+}
+
+/* =========================================================
+   Floating card system
+   - Keep .card for your existing markup
+   - Add .ca-card for new areas (optional)
+   ========================================================= */
+.card,
+.ca-card {
+  background: linear-gradient(180deg, var(--ca-surface) 0%, var(--ca-surface-2) 100%);
+  color: var(--ca-text-dark);
+  border-radius: var(--ca-radius-lg);
+  padding: var(--ca-pad-lg);
+  box-shadow: var(--ca-shadow-1);
+  border: 1px solid rgba(16, 26, 58, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  margin-bottom: 16px;
+}
+
+/* Slight “float” feel without being gimmicky */
+.card,
+.ca-card {
+  transform: translateZ(0);
+}
+
+.ca-card--tight {
+  padding: var(--ca-pad-md);
+  border-radius: var(--ca-radius-md);
+}
+
+/* Card header typography */
+.ca-title {
+  margin: 0 0 10px 0;
+  font-size: 1.25rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: #0f1633;
+}
+
+.ca-subtitle {
+  margin: 0 0 14px 0;
+  font-size: 0.95rem;
+  color: rgba(15, 22, 51, 0.70);
+  line-height: 1.35;
+}
+
+/* Divider line */
+.ca-divider {
+  height: 1px;
+  background: linear-gradient(90deg, rgba(16, 26, 58, 0.08), rgba(16, 26, 58, 0.02));
+  margin: 14px 0;
+}
+
+/* =========================================================
+   Inputs + small UI polish (safe, generic)
+   ========================================================= */
+input, select, textarea, button {
+  font: inherit;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 12px 12px;
+  border-radius: var(--ca-radius-sm);
+  border: 1px solid rgba(16, 26, 58, 0.14);
+  background: #ffffff;
+  color: #11162b;
+  outline: none;
+  transition: box-shadow var(--ca-dur) var(--ca-ease), border-color var(--ca-dur) var(--ca-ease);
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: rgba(91, 44, 255, 0.55);
+  box-shadow: 0 0 0 4px rgba(122, 77, 255, 0.18);
+}
+
+/* Buttons (optional classes you can hook to later) */
+.ca-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(16, 26, 58, 0.65);
+  color: var(--ca-text);
+  padding: 12px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform var(--ca-dur) var(--ca-ease),
+              box-shadow var(--ca-dur) var(--ca-ease),
+              background var(--ca-dur) var(--ca-ease),
+              border-color var(--ca-dur) var(--ca-ease);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.22);
+}
+
+.ca-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(16, 26, 58, 0.72);
+  border-color: var(--ca-border-strong);
+}
+
+.ca-btn:active {
+  transform: translateY(0px);
+}
+
+.ca-btn--primary {
+  border-color: rgba(207, 231, 255, 0.24);
+  background: linear-gradient(135deg, rgba(91, 44, 255, 0.92) 0%, rgba(122, 77, 255, 0.92) 60%, rgba(207, 231, 255, 0.40) 130%);
+  box-shadow: 0 16px 44px rgba(91, 44, 255, 0.28), 0 12px 30px rgba(0,0,0,0.22);
+}
+
+.ca-btn--primary:hover {
+  border-color: rgba(207, 231, 255, 0.35);
+  box-shadow: 0 18px 52px rgba(91, 44, 255, 0.34), 0 14px 34px rgba(0,0,0,0.22);
+}
+
+/* =========================================================
+   Page transitions (hook these from App.jsx later)
+   We are NOT changing logic here; only providing CSS classes.
+   ========================================================= */
+
+/* Wrap your page content in a container you can animate */
+.ca-pageFrame {
+  position: relative;
+  perspective: 1200px; /* enables optional page-turn feel */
+}
+
+/* Active page surface */
+.ca-page {
+  will-change: transform, opacity;
+}
+
+/* Slide forward/back (reliable baseline) */
+.ca-anim-forward-enter {
+  animation: caForwardEnter var(--ca-dur) var(--ca-ease) both;
+}
+.ca-anim-forward-exit {
+  animation: caForwardExit var(--ca-dur) var(--ca-ease) both;
+}
+.ca-anim-back-enter {
+  animation: caBackEnter var(--ca-dur) var(--ca-ease) both;
+}
+.ca-anim-back-exit {
+  animation: caBackExit var(--ca-dur) var(--ca-ease) both;
+}
+
+@keyframes caForwardEnter {
+  from { opacity: 0; transform: translateX(18px) scale(0.995); }
+  to   { opacity: 1; transform: translateX(0px) scale(1); }
+}
+@keyframes caForwardExit {
+  from { opacity: 1; transform: translateX(0px) scale(1); }
+  to   { opacity: 0; transform: translateX(-18px) scale(0.995); }
+}
+@keyframes caBackEnter {
+  from { opacity: 0; transform: translateX(-18px) scale(0.995); }
+  to   { opacity: 1; transform: translateX(0px) scale(1); }
+}
+@keyframes caBackExit {
+  from { opacity: 1; transform: translateX(0px) scale(1); }
+  to   { opacity: 0; transform: translateX(18px) scale(0.995); }
+}
+
+/* Optional: Page-turn (book-like) — we can hook later if you want */
+.ca-anim-turn-forward {
+  transform-origin: right center;
+  animation: caTurnForward 520ms var(--ca-ease) both;
+}
+.ca-anim-turn-back {
+  transform-origin: left center;
+  animation: caTurnBack 520ms var(--ca-ease) both;
+}
+
+@keyframes caTurnForward {
+  0%   { opacity: 0.94; transform: rotateY(14deg) translateX(8px); }
+  55%  { opacity: 1;    transform: rotateY(0deg) translateX(0px); }
+  100% { opacity: 1;    transform: rotateY(0deg) translateX(0px); }
+}
+@keyframes caTurnBack {
+  0%   { opacity: 0.94; transform: rotateY(-14deg) translateX(-8px); }
+  55%  { opacity: 1;    transform: rotateY(0deg) translateX(0px); }
+  100% { opacity: 1;    transform: rotateY(0deg) translateX(0px); }
+}
+
+/* Reduce motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .ca-anim-forward-enter,
+  .ca-anim-forward-exit,
+  .ca-anim-back-enter,
+  .ca-anim-back-exit,
+  .ca-anim-turn-forward,
+  .ca-anim-turn-back {
+    animation: none !important;
+  }
+}
+
+/* =========================================================
+   Legacy Vite template styles (kept, harmless)
+   ========================================================= */
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover { filter: drop-shadow(0 0 2em #646cffaa); }
+.logo.react:hover { filter: drop-shadow(0 0 2em #61dafbaa); }
+
+@keyframes logo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.read-the-docs {
+  color: #888;
+}
+/* =========================================================
+   ClearAhead — checkbox visibility upgrade (design only)
+   ========================================================= */
+
+input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ca-purple-2);
+  cursor: pointer;
+}
+
+/* Make unchecked boxes easier to see on dark backgrounds */
+input[type="checkbox"]:not(:checked) {
+  filter: drop-shadow(0 0 0 rgba(0,0,0,0));
+  box-shadow: 0 0 0 2px rgba(207, 231, 255, 0.22);
+  border-radius: 4px;
+}
+
+/* Slight glow when checked */
+input[type="checkbox"]:checked {
+  box-shadow: 0 0 0 3px rgba(122, 77, 255, 0.22);
+}
+/* ClearAhead button system */
+.caBtn {
+  width: 100%;
+  border-radius: 14px;
+  padding: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.06s ease, filter 0.15s ease, opacity 0.15s ease;
+}
+
+.caBtn:active {
+  transform: translateY(1px);
+}
+
+.caBtnPrimary {
+  border: none;
+  color: white;
+  background: rgba(47, 122, 127, 0.85);
+}
+
+.caBtnPrimary:hover {
+  filter: brightness(1.08);
+}
+
+.caBtnSoft {
+  border: 1px solid rgba(255,255,255,0.18);
+  color: white;
+  background: rgba(255,255,255,0.08);
+}
+
+.caBtnSoft:hover {
+  filter: brightness(1.08);
+}
+
+.caBtnGhost {
+  border: 1px solid rgba(255,255,255,0.18);
+  color: white;
+  background: rgba(255,255,255,0.06);
+  opacity: 0.92;
+}
+
+.caBtnGhost:hover {
+  filter: brightness(1.08);
+}
+
+.caBtnDanger {
+  border: 1px solid rgba(255,255,255,0.18);
+  color: white;
+  background: rgba(255,255,255,0.06);
+  opacity: 0.92;
+}
+
+.caBtnDanger:hover {
+  filter: brightness(1.08);
+}
+/* ===== Page transition (slide) ===== */
+
+.caPage {
+  animation-duration: 220ms;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+  will-change: transform, opacity;
+}
+
+.caPage--fwd {
+  animation-name: caSlideInFwd;
+}
+
+.caPage--back {
+  animation-name: caSlideInBack;
+}
+
+@keyframes caSlideInFwd {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes caSlideInBack {
+  from { opacity: 0; transform: translateX(-18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Accessibility: respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .caPage,
+  .caPage--fwd,
+  .caPage--back {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+.ca-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.caPage {
+  width: 100%;
+}
+/* iOS Safari date input fix */
+input[type="date"] {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Prevent cards from allowing children to overflow */
+.ca-container,
+.appShell,
+.ca-card {
+  overflow-x: hidden;
+}
+/* =========================================================
+   Mobile clamp: prevent horizontal overflow / right-shift
+   (safe: overrides layout only on small screens)
+   ========================================================= */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@media (max-width: 520px) {
+  .appShell {
+    padding: 18px 12px;
+    overflow-x: hidden;
+  }
+
+  /* On mobile, avoid flex-centering the container (can cause right shift) */
+  .ca-container {
+    display: block !important;
+    max-width: 100% !important;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .caPage,
+  .card,
+  .ca-card {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Ensure text/buttons in flex rows can shrink/wrap instead of pushing wide */
+  .caHeaderRow,
+  .headerActions {
+    flex-wrap: wrap !important;
+  }
+
+  .card * ,
+  .ca-card * {
+    min-width: 0;
+  }
+}
+/* =========================================================
+   Mobile clamp v2 – force cards & modals to stay inside page
+   ========================================================= */
+
+@media (max-width: 520px) {
+
+  /* All main cards behave like Personal Bills cards */
+  .card,
+  .ca-card,
+  .overviewCard,
+  .lookaheadCard,
+  .safeNumberCard {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box;
+  }
+
+  /* Inner blocks inside cards */
+  .card > *,
+  .ca-card > * {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Generic modal shell */
+  .modal,
+  .ca-modal,
+  .vehicleModal,
+  .detailsModal {
+    width: calc(100% - 24px) !important;
+    max-width: 480px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    left: 0 !important;
+    right: 0 !important;
+    box-sizing: border-box;
+  }
+
+  /* Modal inner content scroll instead of overflow */
+  .modalContent,
+  .ca-modalContent {
+    max-width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+  }
+
+  /* Rows inside vehicle cost popup */
+  .vehicleCostRow,
+  .vehicleCostRow * {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+}
