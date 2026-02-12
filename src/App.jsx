@@ -819,11 +819,33 @@ function IncomeItemDetails({
 export default function App() {
   const [step, setStep] = useState(1);
   const [showAbout, setShowAbout] = useState(false);
+  // Show the About screen automatically on the very first launch (after install).
+  // After the user closes it once, we remember that choice in localStorage.
+  const closeAbout = () => {
+    setShowAbout(false);
+    try {
+      localStorage.setItem("ca_seen_about", "1");
+    } catch (e) {
+      // ignore (private mode / blocked storage)
+    }
+  };
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem("ca_seen_about");
+      if (!seen) setShowAbout(true);
+    } catch (e) {
+      // If storage is blocked, still show it on load.
+      setShowAbout(true);
+    }
+  }, []);
+
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [showProInfo, setShowProInfo] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
   const [isPro, setIsPro] = useState(false);
   
+
 // Pro entitlement is decided at build-time (two-app model):
   // - ClearAhead Basic: VITE_CLEARAHEAD_EDITION="basic" (or unset)
   // - ClearAhead Pro:   VITE_CLEARAHEAD_EDITION="pro"
@@ -5521,7 +5543,7 @@ return (
 
 {showAbout && (
         <div
-          onClick={() => setShowAbout(false)}
+          onClick={closeAbout}
           className="caModalOverlay"
           style={{
             position: "fixed",
@@ -5551,7 +5573,7 @@ return (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 12 }}>
               <h2 style={{ margin: 0, fontSize: 26, letterSpacing: -0.6 }}>About ClearAhead</h2>
               <button
-                onClick={() => setShowAbout(false)}
+                onClick={closeAbout}
                 style={{
                   background: "#8b5cf6",
                   color: "white",
