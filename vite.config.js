@@ -17,7 +17,7 @@ export default defineConfig({
         display: "standalone",
         orientation: "portrait",
         start_url: "/",
-                icons: [
+        icons: [
           {
             src: "/pwa-192x192.png",
             sizes: "192x192",
@@ -31,3 +31,5 @@ export default defineConfig({
         ],
       },
     }),
+  ],
+});
