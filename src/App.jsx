@@ -107,6 +107,7 @@ const CA_FREQ_LABELS = {
   monthly: "Monthly",
   last_day_of_month: "Last day of month",
   last_friday_of_month: "Last Friday of month",
+  yearly: "Yearly",
 };
 
 function prettyFrequency(value) {
@@ -462,11 +463,11 @@ function nextOccurrencesWithinWindow({ start, first, freq, windowEnd }) {
   }
 
   if (d < start) {
-    if (freq === "monthly" || isSpecialMonthly(freq)) {
+    if (freq === "monthly" || freq === "yearly" || isSpecialMonthly(freq)) {
       let months = 0;
       while (d < start && months < 240) {
         months += 1;
-        const base = addMonthsSameDay(d, 1);
+        const base = addMonthsSameDay(d, (freq === "yearly") ? 12 : 1);
         d = isSpecialMonthly(freq) ? specialMonthlyDateFor(base, freq) : base;
       }
     } else {
@@ -478,8 +479,8 @@ function nextOccurrencesWithinWindow({ start, first, freq, windowEnd }) {
   while (d <= windowEnd) {
     if (d >= start) occ.push(d);
 
-    if (freq === "monthly" || isSpecialMonthly(freq)) {
-      const base = addMonthsSameDay(d, 1);
+    if (freq === "monthly" || freq === "yearly" || isSpecialMonthly(freq)) {
+      const base = addMonthsSameDay(d, (freq === "yearly") ? 12 : 1);
       d = isSpecialMonthly(freq) ? specialMonthlyDateFor(base, freq) : base;
     } else {
       d = addDays(d, freqDays(freq));
@@ -941,7 +942,42 @@ async function handleShare() {
   function goTo(nextStep) {
   setNavFrom(nextStep > step ? "forward" : "back");
   setStep(nextStep);
+
+  // Add a history entry so Android back doesn’t exit the TWA
+  try {
+    window.history.pushState({ caStep: nextStep }, "", `#step-${nextStep}`);
+  } catch {}
 }
+
+// Android back button/gesture support (TWA/PWA): navigate steps instead of exiting
+useEffect(() => {
+  try {
+    window.history.replaceState({ caStep: step }, "", `#step-${step}`);
+  } catch {}
+
+  const onPop = (e) => {
+    const s = e?.state?.caStep;
+
+    // If we don't have a stored step (e.g., first entry), fall back to Overview
+    if (!s) {
+      if (step !== 1) {
+        setNavFrom("back");
+        setStep(1);
+        try {
+          window.history.pushState({ caStep: 1 }, "", `#step-1`);
+        } catch {}
+      }
+      return;
+    }
+
+    setNavFrom("back");
+    setStep(s);
+  };
+
+  window.addEventListener("popstate", onPop);
+  return () => window.removeEventListener("popstate", onPop);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [step]);
 
 // Always start each screen at the top (prevents “landing halfway down”)
 // Only scroll to top when we CHANGE steps (not while typing on a page)
@@ -1289,6 +1325,7 @@ const [whatIfChecked, setWhatIfChecked] = useState(false);
     { value: "fortnightly", label: "Fortnightly" },
     { value: "four_weekly", label: "4-weekly" },
     { value: "monthly", label: "Monthly" },
+    { value: "yearly", label: "Yearly" },
     { value: "last_day_of_month", label: "Last day of month" },
     { value: "last_friday_of_month", label: "Last Friday of month" },
   ];
@@ -2686,9 +2723,7 @@ const labelStyle = {
 
       {step === 2 && (
   <div style={cardStyle}>
-    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "flex-start", gap: 12, flexWrap: "wrap" }}>
-          <h1 style={{ margin: 0, color: "#a855f7", WebkitTextStroke: "0.5px rgba(255,255,255,0.55)", textShadow: "0 0 6px rgba(255,255,255,0.55), 0 0 14px rgba(255,255,255,0.35), 0 0 26px rgba(255,255,255,0.18)" }}>ClearAhead</h1>
-        </div>
+    <h2 style={{ marginTop: 0 }}>Income</h2>
 
     {renderStepper(2)}
 
