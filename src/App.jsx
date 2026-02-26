@@ -14,7 +14,19 @@ const CA_UNLOCK_STORAGE_KEY = "ca_basic_unlocked_v1";
 
 function caCanUsePlayBilling() {
   try {
-    return typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function";
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+    // Play Billing via Digital Goods API is only available on Android (TWA / Play Store context)
+    if (!/Android/i.test(ua)) return false;
+
+    // Strong positive signal in a Trusted Web Activity:
+    // referrer is usually "android-app://<package>"
+    const ref = typeof document !== "undefined" ? (document.referrer || "") : "";
+    const isAndroidRef = ref.startsWith("android-app://");
+
+    // Digital Goods bridge exists in Play Billing capable WebView
+    const hasDigitalGoods = typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function";
+
+    return isAndroidRef || hasDigitalGoods;
   } catch {
     return false;
   }
