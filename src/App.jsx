@@ -2,6 +2,126 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 
 import "./App.css";
 
+
+// =========================
+// Basic One‑Time Unlock (Android Google Play Billing via Digital Goods API)
+// - Only runs inside the installed Android app where Play Billing bridge exists.
+// - Never blocks Windows or normal browsers (they don't expose getDigitalGoodsService).
+// =========================
+const CA_PLAY_BILLING_STORE_ID = "https://play.google.com/billing";
+const CA_BASIC_UNLOCK_SKU = "basic_unlock";
+const CA_UNLOCK_STORAGE_KEY = "ca_basic_unlocked_v1";
+
+function caCanUsePlayBilling() {
+  try {
+    return typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function";
+  } catch {
+    return false;
+  }
+}
+
+function CABasicUnlockOverlay({
+  priceLabel = "£0.99",
+  loading = false,
+  error = "",
+  onBuy,
+  onRestore,
+}) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 999999,
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        background: "#0B1220",
+        color: "#E5E7EB",
+        textAlign: "center",
+      }}
+    >
+      <div style={{ maxWidth: 560, width: "100%" }}>
+        <div
+          style={{
+            border: "1px solid rgba(255,255,255,0.10)",
+            background: "rgba(255,255,255,0.03)",
+            borderRadius: 16,
+            padding: 22,
+          }}
+        >
+          <h1 style={{ margin: 0, fontSize: 22, letterSpacing: 0.2 }}>Unlock ClearAhead Basic</h1>
+          <p style={{ marginTop: 10, lineHeight: 1.5, opacity: 0.95 }}>
+            ClearAhead Basic is a <strong>one‑time purchase</strong>.<nobr />
+            No ads. No subscriptions. No in‑app traps.
+          </p>
+
+          <div style={{ marginTop: 14, display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={onBuy}
+              disabled={loading}
+              style={{
+                background: "#8B5CF6",
+                color: "#0B1220",
+                border: "none",
+                padding: "10px 14px",
+                borderRadius: 12,
+                cursor: loading ? "not-allowed" : "pointer",
+                fontWeight: 800,
+                minWidth: 210,
+              }}
+            >
+              {loading ? "Loading…" : `Unlock for ${priceLabel}`}
+            </button>
+
+            <button
+              type="button"
+              onClick={onRestore}
+              disabled={loading}
+              style={{
+                background: "rgba(255,255,255,0.10)",
+                color: "#E5E7EB",
+                border: "1px solid rgba(255,255,255,0.16)",
+                padding: "10px 14px",
+                borderRadius: 12,
+                cursor: loading ? "not-allowed" : "pointer",
+                fontWeight: 700,
+                minWidth: 210,
+              }}
+            >
+              Restore purchase
+            </button>
+          </div>
+
+          {error ? (
+            <div
+              style={{
+                marginTop: 14,
+                padding: 12,
+                borderRadius: 12,
+                background: "rgba(239,68,68,0.14)",
+                border: "1px solid rgba(239,68,68,0.35)",
+                color: "#FCA5A5",
+                fontSize: 13,
+                lineHeight: 1.4,
+              }}
+            >
+              {error}
+            </div>
+          ) : null}
+
+          <div style={{ marginTop: 12, fontSize: 12, opacity: 0.78, lineHeight: 1.4 }}>
+            If you already paid on this Google account, tap <strong>Restore purchase</strong>.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------- Locale currency formatting (global-ready) ----------
 const caLocale =
   (typeof navigator !== "undefined" && navigator.language)
@@ -820,6 +940,54 @@ function IncomeItemDetails({
 export default function App() {
   const [step, setStep] = useState(1);
   const [showAbout, setShowAbout] = useState(false);
+  // ---------- Basic one‑time unlock (Android only; hook-safe overlay) ----------
+  const [caUnlocked, setCaUnlocked] = useState(() => {
+    try {
+      return typeof window !== "undefined" && localStorage.getItem(CA_UNLOCK_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [caUnlockChecked, setCaUnlockChecked] = useState(false);
+  const [caUnlockLoading, setCaUnlockLoading] = useState(false);
+  const [caUnlockError, setCaUnlockError] = useState("");
+  const [caUnlockPriceLabel, setCaUnlockPriceLabel] = useState("£0.99");
+
+  const caStoreUnlockLocally = () => {
+    try { localStorage.setItem(CA_UNLOCK_STORAGE_KEY, "1"); } catch { /* ignore */ }
+  };
+
+  const caGetPlayBillingService = async () => {
+    if (!caCanUsePlayBilling()) throw new Error("billing_unavailable");
+    return await window.getDigitalGoodsService(CA_PLAY_BILLING_STORE_ID);
+  };
+
+  const caFormatPrice = (item) => {
+    try {
+      if (!item?.price?.currency || typeof item?.price?.value !== "number") return null;
+      return new Intl.NumberFormat(navigator.language || "en-GB", {
+        style: "currency",
+        currency: item.price.currency,
+      }).format(item.price.value);
+    } catch {
+      return null;
+    }
+  };
+
+  const caCheckEntitlement = async (service) => {
+    try {
+      const purchases = await service.listPurchases();
+      const has = Array.isArray(purchases) && purchases.some((p) => p?.itemId === CA_BASIC_UNLOCK_SKU);
+      if (has) {
+        setCaUnlocked(true);
+        caStoreUnlockLocally();
+        return true;
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  };
   // Show the About screen automatically on the very first launch (after install).
   // After the user closes it once, we remember that choice in localStorage.
   const closeAbout = () => {
@@ -853,6 +1021,112 @@ export default function App() {
   // No in-app purchases, no restore, no store/billing bridges.
   const CA_EDITION = (import.meta.env.VITE_CLEARAHEAD_EDITION || import.meta.env.VITE_CLEARAHEAD_PRO || "basic");
   const IS_PRO_BUILD = String(CA_EDITION).toLowerCase() === "pro" || String(CA_EDITION).toLowerCase() === "true" || String(CA_EDITION) === "1";
+  useEffect(() => {
+    // Only Basic uses the unlock. Pro stays separate.
+    if (IS_PRO_BUILD) { setCaUnlocked(true); setCaUnlockChecked(true); return; }
+
+    // Never run billing checks on platforms without Play Billing bridge (Windows/web).
+    if (!caCanUsePlayBilling()) { setCaUnlockChecked(true); return; }
+
+    let cancelled = false;
+
+    const init = async () => {
+      setCaUnlockError("");
+      setCaUnlockChecked(false);
+
+      // Fast path: local cache
+      try {
+        if (localStorage.getItem(CA_UNLOCK_STORAGE_KEY) === "1") {
+          setCaUnlocked(true);
+          setCaUnlockChecked(true);
+          return;
+        }
+      } catch {
+        // ignore
+      }
+
+      setCaUnlockLoading(true);
+      try {
+        const service = await caGetPlayBillingService();
+
+        // Price label (best effort)
+        try {
+          const details = await service.getDetails([CA_BASIC_UNLOCK_SKU]);
+          if (Array.isArray(details) && details[0]) {
+            const formatted = caFormatPrice(details[0]);
+            if (formatted && !cancelled) setCaUnlockPriceLabel(formatted);
+          }
+        } catch {
+          // ignore
+        }
+
+        await caCheckEntitlement(service);
+      } catch (e) {
+        if (!cancelled) setCaUnlockError("Purchases are only available in the installed Android app.");
+      } finally {
+        if (!cancelled) {
+          setCaUnlockLoading(false);
+          setCaUnlockChecked(true);
+        }
+      }
+    };
+
+    init();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [IS_PRO_BUILD]);
+
+  // Show unlock overlay only after we've checked purchase state (prevents 1-frame flash / undefined var)
+  const caShowUnlockOverlay = (!IS_PRO_BUILD) && (!caUnlocked) && caUnlockChecked && caCanUsePlayBilling();
+
+
+  const caHandleBuyUnlock = async () => {
+    setCaUnlockError("");
+    setCaUnlockLoading(true);
+    try {
+      if (typeof window === "undefined" || typeof window.PaymentRequest !== "function") {
+        throw new Error("payment_request_unavailable");
+      }
+      const service = await caGetPlayBillingService();
+
+      const methodData = [{
+        supportedMethods: CA_PLAY_BILLING_STORE_ID,
+        data: { sku: CA_BASIC_UNLOCK_SKU },
+      }];
+
+      // Required by PaymentRequest API. Play Billing uses the SKU.
+      const details = { total: { label: "ClearAhead Basic Unlock", amount: { currency: "GBP", value: "0.99" } } };
+
+      const request = new window.PaymentRequest(methodData, details);
+      const response = await request.show();
+      try { await response.complete("success"); } catch { /* ignore */ }
+
+      const ok = await caCheckEntitlement(service);
+      if (!ok) throw new Error("no_entitlement");
+
+      setCaUnlocked(true);
+      caStoreUnlockLocally();
+    } catch (e) {
+      setCaUnlockError("Payment failed or was cancelled. Please try again.");
+    } finally {
+      setCaUnlockLoading(false);
+    }
+  };
+
+  const caHandleRestoreUnlock = async () => {
+    setCaUnlockError("");
+    setCaUnlockLoading(true);
+    try {
+      const service = await caGetPlayBillingService();
+      const ok = await caCheckEntitlement(service);
+      if (!ok) setCaUnlockError("No purchase found on this Google account yet.");
+    } catch (e) {
+      setCaUnlockError("Restore is only available in the installed Android app.");
+    } finally {
+      setCaUnlockLoading(false);
+    }
+  };
   useEffect(() => {
     setIsPro(IS_PRO_BUILD);
   }, [IS_PRO_BUILD]);
@@ -2021,6 +2295,16 @@ const labelStyle = {
   function renderHelp(title, lines) {
     return (
       <div style={helpBox}>
+      {caShowUnlockOverlay ? (
+        <CABasicUnlockOverlay
+          priceLabel={caUnlockPriceLabel}
+          loading={caUnlockLoading}
+          error={caUnlockError}
+          onBuy={caHandleBuyUnlock}
+          onRestore={caHandleRestoreUnlock}
+        />
+      ) : null}
+
         <div style={{ fontWeight: 900, marginBottom: 6 }}>{title}</div>
         <ul style={{ marginTop: 0, marginBottom: 0, paddingLeft: 18, fontSize: 12, opacity: 0.92 }}>
           {lines.map((t, i) => (
