@@ -2342,17 +2342,7 @@ const labelStyle = {
   function renderHelp(title, lines) {
     return (
       <div style={helpBox}>
-      {caShowUnlockOverlay ? (
-        <CABasicUnlockOverlay
-          priceLabel={caUnlockPriceLabel}
-          loading={caUnlockLoading}
-          error={caUnlockError}
-          onBuy={caHandleBuyUnlock}
-          onRestore={caHandleRestoreUnlock}
-        />
-      ) : null}
-
-        <div style={{ fontWeight: 900, marginBottom: 6 }}>{title}</div>
+<div style={{ fontWeight: 900, marginBottom: 6 }}>{title}</div>
         <ul style={{ marginTop: 0, marginBottom: 0, paddingLeft: 18, fontSize: 12, opacity: 0.92 }}>
           {lines.map((t, i) => (
             <li key={i} style={{ marginBottom: 6 }}>{t}</li>
@@ -6014,7 +6004,7 @@ return (
 
   {caShowUnlockOverlay && (
     <CABasicUnlockOverlay
-      priceLabel={caPriceLabel}
+      priceLabel={caUnlockPriceLabel}
       loading={caUnlockLoading}
       error={caUnlockError}
       onBuy={caHandleBuyUnlock}
