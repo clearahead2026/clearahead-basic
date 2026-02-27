@@ -14,19 +14,30 @@ const CA_UNLOCK_STORAGE_KEY = "ca_basic_unlocked_v1";
 
 function caCanUsePlayBilling() {
   try {
-    const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-    // Play Billing via Digital Goods API is only available on Android (TWA / Play Store context)
-    if (!/Android/i.test(ua)) return false;
+    if (typeof navigator === "undefined" || typeof window === "undefined") return false;
 
-    // Strong positive signal in a Trusted Web Activity:
-    // referrer is usually "android-app://<package>"
+    const ua = navigator.userAgent || "";
+    const isWindows = /Windows/i.test(ua);
+    if (isWindows) return false;
+
+    const isAndroid = /Android/i.test(ua);
+    if (!isAndroid) return false;
+
+    const hasDgs =
+      typeof navigator.getDigitalGoodsService === "function" ||
+      typeof window.getDigitalGoodsService === "function"; // legacy / fallback
+
+    if (!hasDgs) return false;
+
     const ref = typeof document !== "undefined" ? (document.referrer || "") : "";
     const isAndroidRef = ref.startsWith("android-app://");
 
-    // Digital Goods bridge exists in Play Billing capable WebView
-    const hasDigitalGoods = typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function";
+    const isStandalone =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(display-mode: standalone)").matches;
 
-    return isAndroidRef || hasDigitalGoods;
+    // In a proper Play-distributed TWA, we should have Digital Goods + (android-app ref OR standalone).
+    return isAndroidRef || isStandalone;
   } catch {
     return false;
   }
@@ -971,8 +982,14 @@ export default function App() {
 
   const caGetPlayBillingService = async () => {
     if (!caCanUsePlayBilling()) throw new Error("billing_unavailable");
-    return await window.getDigitalGoodsService(CA_PLAY_BILLING_STORE_ID);
-  };
+        const getDgs = (typeof navigator !== "undefined" && typeof navigator.getDigitalGoodsService === "function")
+      ? navigator.getDigitalGoodsService.bind(navigator)
+      : (typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function")
+        ? window.getDigitalGoodsService.bind(window)
+        : null;
+    if (!getDgs) throw new Error("billing_unavailable");
+    return await getDgs(CA_PLAY_BILLING_STORE_ID);
+};
 
   const caFormatPrice = (item) => {
     try {
