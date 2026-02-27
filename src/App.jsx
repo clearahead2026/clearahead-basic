@@ -1114,22 +1114,6 @@ export default function App() {
 
   // Show unlock overlay only after we've checked purchase state (prevents 1-frame flash / undefined var)
   const caShowUnlockOverlay = (!IS_PRO_BUILD) && (!caUnlocked) && caUnlockChecked && caCanUsePlayBilling();
-
-  // If not unlocked, block the app with the full-screen unlock overlay (Android Play Billing only).
-  if (caShowUnlockOverlay) {
-    return (
-      <CABasicUnlockOverlay
-        priceLabel={caPriceLabel}
-        loading={caUnlockLoading}
-        error={caUnlockError}
-        onBuy={caHandleBuyUnlock}
-        onRestore={caHandleRestoreUnlock}
-      />
-    );
-  }
-
-
-
   const caHandleBuyUnlock = async () => {
     setCaUnlockError("");
     setCaUnlockLoading(true);
@@ -6027,6 +6011,17 @@ return (
           </div>
         </div>
       )}
+
+  {caShowUnlockOverlay && (
+    <CABasicUnlockOverlay
+      priceLabel={caPriceLabel}
+      loading={caUnlockLoading}
+      error={caUnlockError}
+      onBuy={caHandleBuyUnlock}
+      onRestore={caHandleRestoreUnlock}
+    />
+  )}
+
 </div>
   );
 
