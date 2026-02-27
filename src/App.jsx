@@ -9,7 +9,10 @@ import "./App.css";
 // - Never blocks Windows or normal browsers (they don't expose getDigitalGoodsService).
 // =========================
 const CA_PLAY_BILLING_STORE_ID = "https://play.google.com/billing";
-const CA_BASIC_UNLOCK_SKU = "basic_unlock";
+const CA_BASIC_UNLOCK_PRODUCT_ID = "basic_unlock";
+const CA_BASIC_UNLOCK_PURCHASE_OPTION_ID = "basic-unlock-option";
+// Digital Goods API uses the Purchase Option ID as itemId
+const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
 const CA_UNLOCK_STORAGE_KEY = "ca_basic_unlocked_v1";
 
 function caCanUsePlayBilling() {
@@ -1006,7 +1009,10 @@ export default function App() {
   const caCheckEntitlement = async (service) => {
     try {
       const purchases = await service.listPurchases();
-      const has = Array.isArray(purchases) && purchases.some((p) => p?.itemId === CA_BASIC_UNLOCK_SKU);
+    const has = Array.isArray(purchases) && purchases.some((p) => {
+      const id = p?.itemId;
+      return id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID || id === CA_BASIC_UNLOCK_PRODUCT_ID;
+    });
       if (has) {
         setCaUnlocked(true);
         caStoreUnlockLocally();
@@ -1109,6 +1115,20 @@ export default function App() {
   // Show unlock overlay only after we've checked purchase state (prevents 1-frame flash / undefined var)
   const caShowUnlockOverlay = (!IS_PRO_BUILD) && (!caUnlocked) && caUnlockChecked && caCanUsePlayBilling();
 
+  // If not unlocked, block the app with the full-screen unlock overlay (Android Play Billing only).
+  if (caShowUnlockOverlay) {
+    return (
+      <CABasicUnlockOverlay
+        priceLabel={caPriceLabel}
+        loading={caUnlockLoading}
+        error={caUnlockError}
+        onBuy={caHandleBuyUnlock}
+        onRestore={caHandleRestoreUnlock}
+      />
+    );
+  }
+
+
 
   const caHandleBuyUnlock = async () => {
     setCaUnlockError("");
@@ -1137,8 +1157,21 @@ export default function App() {
       setCaUnlocked(true);
       caStoreUnlockLocally();
     } catch (e) {
+      const msg = String(e?.message || e || "").toLowerCase();
+      // If Google Play says the item is already owned, treat it as unlocked via entitlement check.
+      if (msg.includes("already") || msg.includes("owned")) {
+        try {
+          const service2 = await caGetPlayBillingService();
+          const ok = await caCheckEntitlement(service2);
+          if (ok) {
+            setCaUnlocked(true);
+            caStoreUnlockLocally();
+            setCaUnlockError("");
+            return;
+          }
+        } catch (_) {}
+      }
       setCaUnlockError("Payment failed or was cancelled. Please try again.");
-    } finally {
       setCaUnlockLoading(false);
     }
   };
@@ -1150,6 +1183,7 @@ export default function App() {
       const service = await caGetPlayBillingService();
       const ok = await caCheckEntitlement(service);
       if (!ok) setCaUnlockError("No purchase found on this Google account yet.");
+      setCaUnlockLoading(false);
     } catch (e) {
       setCaUnlockError("Restore is only available in the installed Android app.");
     } finally {
