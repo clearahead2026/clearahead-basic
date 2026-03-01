@@ -1156,7 +1156,9 @@ export default function App() {
       setCaUnlocked(true);
       caStoreUnlockLocally();
     } catch (e) {
-      const msg = String(e?.message || e || "").toLowerCase();
+  console.log("BILLING_ERROR_RAW:", e);
+  console.log("BILLING_ERROR_STR:", String(e?.message || e));
+  const msg = String(e?.message || e || "").toLowerCase();
 
       // If Google Play says the item is already owned, treat it as unlocked via entitlement check.
       if (msg.includes("already") || msg.includes("owned")) {
