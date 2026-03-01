@@ -1120,66 +1120,95 @@ export default function App() {
   // Show unlock overlay only after we've checked purchase state (prevents 1-frame flash / undefined var)
   const caShowUnlockOverlay = (!IS_PRO_BUILD) && (!caUnlocked) && caUnlockChecked && caBillingEligible;
   const caHandleBuyUnlock = async () => {
-    setCaUnlockError("");
-    setCaUnlockLoading(true);
+  setCaUnlockError("");
+  setCaUnlockLoading(true);
 
-    try {
-      if (typeof window === "undefined" || typeof window.PaymentRequest !== "function") {
-        throw new Error("payment_request_unavailable");
-      }
-
-      const service = await caGetPlayBillingService();
-
-      const methodData = [{
-        supportedMethods: CA_PLAY_BILLING_STORE_ID,
-        data: { sku: CA_BASIC_UNLOCK_SKU },
-      }];
-
-      // Required by PaymentRequest API. Play Billing uses the SKU.
-      const details = { total: { label: "ClearAhead Basic Unlock", amount: { currency: "GBP", value: "0.99" } } };
-
-      const request = new window.PaymentRequest(methodData, details);
-
-      // Launch Play Billing UI
-      const response = await request.show();
-      try { await response.complete("success"); } catch { /* ignore */ }
-
-      // Play can take a moment to reflect the entitlement after a successful purchase.
-      let ok = false;
-      for (let i = 0; i < 6; i++) {
-        await new Promise((r) => setTimeout(r, 600));
-        ok = await caCheckEntitlement(service);
-        if (ok) break;
-      }
-      if (!ok) throw new Error("no_entitlement");
-
-      setCaUnlocked(true);
-      caStoreUnlockLocally();
-    } catch (e) {
-  console.log("BILLING_ERROR_RAW:", e);
-  console.log("BILLING_ERROR_STR:", String(e?.message || e));
-  const msg = String(e?.message || e || "").toLowerCase();
-
-      // If Google Play says the item is already owned, treat it as unlocked via entitlement check.
-      if (msg.includes("already") || msg.includes("owned")) {
-        try {
-          const service2 = await caGetPlayBillingService();
-          await new Promise((r) => setTimeout(r, 400));
-          const ok = await caCheckEntitlement(service2);
-          if (ok) {
-            setCaUnlocked(true);
-            caStoreUnlockLocally();
-            setCaUnlockError("");
-            return;
-          }
-        } catch (_) { /* ignore */ }
-      }
-
-      setCaUnlockError("Billing error: " + String(e?.message || e || "unknown"));
-    } finally {
-      setCaUnlockLoading(false);
+  try {
+    if (typeof window === "undefined" || typeof window.PaymentRequest !== "function") {
+      throw new Error("payment_request_unavailable");
     }
-  };
+
+    const service = await caGetPlayBillingService();
+
+    const methodData = [{
+      supportedMethods: CA_PLAY_BILLING_STORE_ID, // should be "https://play.google.com/billing"
+      data: { sku: CA_BASIC_UNLOCK_SKU },
+    }];
+
+    // Use a neutral total; Play shows the real price from Console.
+    const details = {
+      total: {
+        label: "ClearAhead Basic Unlock",
+        amount: { currency: "GBP", value: "0.00" },
+      },
+    };
+
+    const request = new window.PaymentRequest(methodData, details);
+
+    // Optional but helps some devices fail early instead of “cancelled”
+    if (typeof request.canMakePayment === "function") {
+      const canPay = await request.canMakePayment();
+      if (!canPay) throw new Error("cannot_make_payment");
+    }
+
+    const response = await request.show();
+
+    // ---- IMPORTANT: acknowledge purchase token (non-consumable) ----
+    // Token location can vary; try the known spots safely.
+    const token =
+      response?.details?.purchaseToken ||
+      response?.details?.token ||
+      response?.details?.purchase_token ||
+      response?.details?.paymentMethodData?.token ||
+      response?.details?.paymentMethodData?.purchaseToken;
+
+    if (token) {
+      try {
+        // Digital Goods API supports acknowledge in TWA context
+        if (typeof service.acknowledge === "function") {
+          await service.acknowledge(token);
+        }
+      } catch (_) {
+        // ignore ack errors; entitlement check below is the source of truth
+      }
+    }
+
+    try { await response.complete("success"); } catch { /* ignore */ }
+
+    // Wait for entitlement to appear
+    let ok = false;
+    for (let i = 0; i < 8; i++) {
+      await new Promise((r) => setTimeout(r, 600));
+      ok = await caCheckEntitlement(service);
+      if (ok) break;
+    }
+    if (!ok) throw new Error("no_entitlement");
+
+    setCaUnlocked(true);
+    caStoreUnlockLocally();
+
+  } catch (e) {
+    const msg = String(e?.message || e || "").toLowerCase();
+
+    if (msg.includes("already") || msg.includes("owned")) {
+      try {
+        const service2 = await caGetPlayBillingService();
+        await new Promise((r) => setTimeout(r, 400));
+        const ok = await caCheckEntitlement(service2);
+        if (ok) {
+          setCaUnlocked(true);
+          caStoreUnlockLocally();
+          setCaUnlockError("");
+          return;
+        }
+      } catch (_) {}
+    }
+
+    setCaUnlockError("Billing error: " + String(e?.message || e || "unknown"));
+  } finally {
+    setCaUnlockLoading(false);
+  }
+};
 
   const caHandleRestoreUnlock = async () => {
     setCaUnlockError("");
