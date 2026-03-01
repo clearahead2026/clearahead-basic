@@ -1175,7 +1175,7 @@ export default function App() {
         } catch (_) { /* ignore */ }
       }
 
-      setCaUnlockError("Payment failed or was cancelled. Please try again.");
+      setCaUnlockError("Billing error: " + String(e?.message || e || "unknown"));
     } finally {
       setCaUnlockLoading(false);
     }
