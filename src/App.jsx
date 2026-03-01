@@ -979,12 +979,17 @@ export default function App() {
   const [caUnlockError, setCaUnlockError] = useState("");
   const [caUnlockPriceLabel, setCaUnlockPriceLabel] = useState("£0.99");
 
+  // Cache billing eligibility on first render to avoid rapid toggling during PaymentRequest UI.
+  // (On some devices, display-mode/referrer signals can momentarily change and cause the overlay to flash.)
+  const caBillingEligible = useMemo(() => caCanUsePlayBilling(), []);
+
+
   const caStoreUnlockLocally = () => {
     try { localStorage.setItem(CA_UNLOCK_STORAGE_KEY, "1"); } catch { /* ignore */ }
   };
 
   const caGetPlayBillingService = async () => {
-    if (!caCanUsePlayBilling()) throw new Error("billing_unavailable");
+    if (!caBillingEligible) throw new Error("billing_unavailable");
         const getDgs = (typeof navigator !== "undefined" && typeof navigator.getDigitalGoodsService === "function")
       ? navigator.getDigitalGoodsService.bind(navigator)
       : (typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function")
@@ -1061,7 +1066,7 @@ export default function App() {
     if (IS_PRO_BUILD) { setCaUnlocked(true); setCaUnlockChecked(true); return; }
 
     // Never run billing checks on platforms without Play Billing bridge (Windows/web).
-    if (!caCanUsePlayBilling()) { setCaUnlockChecked(true); return; }
+    if (!caBillingEligible) { setCaUnlockChecked(true); return; }
 
     let cancelled = false;
 
@@ -1113,14 +1118,16 @@ export default function App() {
   }, [IS_PRO_BUILD]);
 
   // Show unlock overlay only after we've checked purchase state (prevents 1-frame flash / undefined var)
-  const caShowUnlockOverlay = (!IS_PRO_BUILD) && (!caUnlocked) && caUnlockChecked && caCanUsePlayBilling();
+  const caShowUnlockOverlay = (!IS_PRO_BUILD) && (!caUnlocked) && caUnlockChecked && caBillingEligible;
   const caHandleBuyUnlock = async () => {
     setCaUnlockError("");
     setCaUnlockLoading(true);
+
     try {
       if (typeof window === "undefined" || typeof window.PaymentRequest !== "function") {
         throw new Error("payment_request_unavailable");
       }
+
       const service = await caGetPlayBillingService();
 
       const methodData = [{
@@ -1132,20 +1139,30 @@ export default function App() {
       const details = { total: { label: "ClearAhead Basic Unlock", amount: { currency: "GBP", value: "0.99" } } };
 
       const request = new window.PaymentRequest(methodData, details);
+
+      // Launch Play Billing UI
       const response = await request.show();
       try { await response.complete("success"); } catch { /* ignore */ }
 
-      const ok = await caCheckEntitlement(service);
+      // Play can take a moment to reflect the entitlement after a successful purchase.
+      let ok = false;
+      for (let i = 0; i < 6; i++) {
+        await new Promise((r) => setTimeout(r, 600));
+        ok = await caCheckEntitlement(service);
+        if (ok) break;
+      }
       if (!ok) throw new Error("no_entitlement");
 
       setCaUnlocked(true);
       caStoreUnlockLocally();
     } catch (e) {
       const msg = String(e?.message || e || "").toLowerCase();
+
       // If Google Play says the item is already owned, treat it as unlocked via entitlement check.
       if (msg.includes("already") || msg.includes("owned")) {
         try {
           const service2 = await caGetPlayBillingService();
+          await new Promise((r) => setTimeout(r, 400));
           const ok = await caCheckEntitlement(service2);
           if (ok) {
             setCaUnlocked(true);
@@ -1153,9 +1170,11 @@ export default function App() {
             setCaUnlockError("");
             return;
           }
-        } catch (_) {}
+        } catch (_) { /* ignore */ }
       }
+
       setCaUnlockError("Payment failed or was cancelled. Please try again.");
+    } finally {
       setCaUnlockLoading(false);
     }
   };
