@@ -1087,7 +1087,10 @@ export default function App() {
 
       setCaUnlockLoading(true);
       try {
-        const service = await caGetPlayBillingService();
+  // wait briefly after app launch so Play Billing service is ready
+  await new Promise(r => setTimeout(r, 600));
+
+  const service = await caGetPlayBillingService();
 
         // Price label (best effort)
         try {
@@ -1239,8 +1242,8 @@ export default function App() {
     caStoreUnlockLocally();
     setCaUnlockError("");
   } catch (e) {
-    setCaUnlockError("Restore is only available in the installed Android app.");
-  } finally {
+  setCaUnlockError("Restore error: " + String(e?.message || e || "unknown"));
+} finally {
     setCaUnlockLoading(false);
   }
 };
