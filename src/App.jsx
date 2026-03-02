@@ -1211,19 +1211,39 @@ export default function App() {
 };
 
   const caHandleRestoreUnlock = async () => {
-    setCaUnlockError("");
-    setCaUnlockLoading(true);
-    try {
-      const service = await caGetPlayBillingService();
-      const ok = await caCheckEntitlement(service);
-      if (!ok) setCaUnlockError("No purchase found on this Google account yet.");
-      setCaUnlockLoading(false);
-    } catch (e) {
-      setCaUnlockError("Restore is only available in the installed Android app.");
-    } finally {
-      setCaUnlockLoading(false);
+  setCaUnlockError("");
+  setCaUnlockLoading(true);
+
+  try {
+    const service = await caGetPlayBillingService();
+
+    // Pull purchases directly and match by product id safely
+    const purchases = (await service.listPurchases?.()) || [];
+    const hit = purchases.find((p) => {
+      const id = p?.sku || p?.productId || p?.itemId || p?.product || "";
+      return id === CA_BASIC_UNLOCK_PRODUCT_ID; // "basic_unlock"
+    });
+
+    if (!hit) {
+      setCaUnlockError("No purchase found on this Google account yet.");
+      return;
     }
-  };
+
+    // If we have a token and acknowledge exists, acknowledge silently (safe)
+    const token = hit?.purchaseToken || hit?.token;
+    if (token && typeof service.acknowledge === "function") {
+      try { await service.acknowledge(token); } catch (_) {}
+    }
+
+    setCaUnlocked(true);
+    caStoreUnlockLocally();
+    setCaUnlockError("");
+  } catch (e) {
+    setCaUnlockError("Restore is only available in the installed Android app.");
+  } finally {
+    setCaUnlockLoading(false);
+  }
+};
   useEffect(() => {
     setIsPro(IS_PRO_BUILD);
   }, [IS_PRO_BUILD]);
