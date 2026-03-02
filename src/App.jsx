@@ -12,7 +12,7 @@ const CA_PLAY_BILLING_STORE_ID = "https://play.google.com/billing";
 const CA_BASIC_UNLOCK_PRODUCT_ID = "basic_unlock";
 const CA_BASIC_UNLOCK_PURCHASE_OPTION_ID = "basic-unlock-option";
 // Digital Goods API uses the Purchase Option ID as itemId
-const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
+const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PRODUCT_ID; // MUST match Play Console product ID
 const CA_UNLOCK_STORAGE_KEY = "ca_basic_unlocked_v1";
 
 function caCanUsePlayBilling() {
@@ -1132,7 +1132,7 @@ export default function App() {
 
     const methodData = [{
       supportedMethods: CA_PLAY_BILLING_STORE_ID, // should be "https://play.google.com/billing"
-      data: { sku: CA_BASIC_UNLOCK_SKU },
+      data: { sku: CA_BASIC_UNLOCK_PRODUCT_ID },
     }];
 
     // Use a neutral total; Play shows the real price from Console.
