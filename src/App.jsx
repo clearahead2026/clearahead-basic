@@ -989,14 +989,30 @@ export default function App() {
   };
 
   const caGetPlayBillingService = async () => {
-    if (!caBillingEligible) throw new Error("billing_unavailable");
-        const getDgs = (typeof navigator !== "undefined" && typeof navigator.getDigitalGoodsService === "function")
+  if (!caBillingEligible) throw new Error("billing_unavailable");
+
+  const getDgs =
+    (typeof navigator !== "undefined" && typeof navigator.getDigitalGoodsService === "function")
       ? navigator.getDigitalGoodsService.bind(navigator)
       : (typeof window !== "undefined" && typeof window.getDigitalGoodsService === "function")
         ? window.getDigitalGoodsService.bind(window)
         : null;
-    if (!getDgs) throw new Error("billing_unavailable");
-    return await getDgs(CA_PLAY_BILLING_STORE_ID);
+
+  if (!getDgs) throw new Error("billing_unavailable");
+
+  // Retry: on some installs, DGS temporarily returns "client app unavailable"
+  let lastErr;
+  for (let i = 0; i < 8; i++) {
+    try {
+      return await getDgs(CA_PLAY_BILLING_STORE_ID);
+    } catch (e) {
+      lastErr = e;
+      const msg = String(e?.message || e || "").toLowerCase();
+      if (!msg.includes("client app unavailable")) throw e;
+      await new Promise((r) => setTimeout(r, 600));
+    }
+  }
+  throw lastErr || new Error("client app unavailable");
 };
 
   const caFormatPrice = (item) => {
@@ -1012,22 +1028,31 @@ export default function App() {
   };
 
   const caCheckEntitlement = async (service) => {
-    try {
-      const purchases = await service.listPurchases();
+  try {
+    const purchases = await service.listPurchases();
+
     const has = Array.isArray(purchases) && purchases.some((p) => {
-      const id = p?.itemId;
-      return id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID || id === CA_BASIC_UNLOCK_PRODUCT_ID;
+      const id =
+        p?.sku ||
+        p?.productId ||
+        p?.itemId ||
+        p?.product ||
+        p?.id ||
+        "";
+
+      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
     });
-      if (has) {
-        setCaUnlocked(true);
-        caStoreUnlockLocally();
-        return true;
-      }
-    } catch {
-      // ignore
+
+    if (has) {
+      setCaUnlocked(true);
+      caStoreUnlockLocally();
+      return true;
     }
-    return false;
-  };
+  } catch {
+    // ignore
+  }
+  return false;
+};
   // Show the About screen automatically on the very first launch (after install).
   // After the user closes it once, we remember that choice in localStorage.
   const closeAbout = () => {
