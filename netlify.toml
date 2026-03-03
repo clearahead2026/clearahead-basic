@@ -1,17 +1,20 @@
-[[redirects]]
-  from = "/.well-known/assetlinks.json"
-  to = "/.well-known/assetlinks.json"
-  status = 200
-  force = true
-
 [[headers]]
-  for = "/.well-known/assetlinks.json"
+for = "/.well-known/assetlinks.json"
   [headers.values]
-    Content-Type = "application/json; charset=utf-8"
-    Cache-Control = "no-cache"
+  Content-Type = "application/json; charset=utf-8"
+  Cache-Control = "no-store, no-cache, must-revalidate, max-age=0"
+  Pragma = "no-cache"
+  Expires = "0"
 
-    [[redirects]]
-  from = "/.well-known/assetlinks.json"
-  to = "/assetlinks.json"
-  status = 200
-  force = true
+# Make sure Netlify never sends index.html for .well-known
+[[redirects]]
+from = "/.well-known/*"
+to = "/.well-known/:splat"
+status = 200
+force = true
+
+# SPA fallback last
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
