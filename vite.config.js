@@ -8,6 +8,10 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg"],
+      // ✅ IMPORTANT: stop SW returning index.html for /.well-known/*
+      workbox: {
+        navigateFallbackDenylist: [/^\/\.well-known\//],
+      },
       manifest: {
         name: "ClearAhead",
         short_name: "ClearAhead",
@@ -18,16 +22,8 @@ export default defineConfig({
         orientation: "portrait",
         start_url: "/",
         icons: [
-          {
-            src: "/pwa-192x192.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-          {
-            src: "/pwa-512x512.png",
-            sizes: "512x512",
-            type: "image/png",
-          },
+          { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png" },
         ],
       },
     }),
