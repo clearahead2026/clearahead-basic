@@ -4,15 +4,11 @@ import "./App.css";
 
 
 // =========================
-// Basic One‑Time Unlock (Android Google Play Billing via Digital Goods API)
-// - Only runs inside the installed Android app where Play Billing bridge exists.
-// - Never blocks Windows or normal browsers (they don't expose getDigitalGoodsService).
+// Basic One-Time Unlock (Android Google Play Billing via Digital Goods API)
 // =========================
 const CA_PLAY_BILLING_STORE_ID = "https://play.google.com/billing";
-const CA_BASIC_UNLOCK_PRODUCT_ID = "basic_unlock";
-const CA_BASIC_UNLOCK_PURCHASE_OPTION_ID = "basic-unlock-option";
-// Digital Goods API uses the Purchase Option ID as itemId
-const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PRODUCT_ID; // MUST match Play Console product ID
+const CA_BASIC_UNLOCK_PRODUCT_ID = "basic_unlock"; // MUST match Play Console product ID exactly
+const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PRODUCT_ID;
 const CA_UNLOCK_STORAGE_KEY = "ca_basic_unlocked_v1";
 
 function caCanUsePlayBilling() {
@@ -20,27 +16,10 @@ function caCanUsePlayBilling() {
     if (typeof navigator === "undefined" || typeof window === "undefined") return false;
 
     const ua = navigator.userAgent || "";
-    const isWindows = /Windows/i.test(ua);
-    if (isWindows) return false;
+    if (!/Android/i.test(ua)) return false;
+    if (/Windows/i.test(ua)) return false;
 
-    const isAndroid = /Android/i.test(ua);
-    if (!isAndroid) return false;
-
-    const hasDgs =
-      typeof navigator.getDigitalGoodsService === "function" ||
-      typeof window.getDigitalGoodsService === "function"; // legacy / fallback
-
-    if (!hasDgs) return false;
-
-    const ref = typeof document !== "undefined" ? (document.referrer || "") : "";
-    const isAndroidRef = ref.startsWith("android-app://");
-
-    const isStandalone =
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(display-mode: standalone)").matches;
-
-    // In a proper Play-distributed TWA, we should have Digital Goods + (android-app ref OR standalone).
-    return isAndroidRef || isStandalone;
+    return typeof navigator.getDigitalGoodsService === "function";
   } catch {
     return false;
   }
@@ -1249,7 +1228,7 @@ export default function App() {
     const purchases = (await service.listPurchases?.()) || [];
     const hit = purchases.find((p) => {
       const id = p?.sku || p?.productId || p?.itemId || p?.product || "";
-      return id === CA_BASIC_UNLOCK_PRODUCT_ID; // "basic_unlock"
+      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
     });
 
     if (!hit) {
