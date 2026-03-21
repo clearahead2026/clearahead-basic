@@ -398,7 +398,7 @@ input[type="checkbox"]:checked {
 .caBtnPrimary {
   border: none;
   color: white;
-  background: rgba(47, 122, 127, 0.85);
+  background: linear-gradient(135deg, rgba(45,212,191,0.96), rgba(13,148,136,0.96));
 }
 
 .caBtnPrimary:hover {
@@ -408,7 +408,7 @@ input[type="checkbox"]:checked {
 .caBtnSoft {
   border: 1px solid rgba(255,255,255,0.18);
   color: white;
-  background: rgba(255,255,255,0.08);
+  background: linear-gradient(135deg, rgba(45,212,191,0.96), rgba(13,148,136,0.96));
 }
 
 .caBtnSoft:hover {
@@ -418,7 +418,7 @@ input[type="checkbox"]:checked {
 .caBtnGhost {
   border: 1px solid rgba(255,255,255,0.18);
   color: white;
-  background: rgba(255,255,255,0.06);
+  background: linear-gradient(135deg, rgba(45,212,191,0.96), rgba(13,148,136,0.96));
   opacity: 0.92;
 }
 
@@ -429,7 +429,7 @@ input[type="checkbox"]:checked {
 .caBtnDanger {
   border: 1px solid rgba(255,255,255,0.18);
   color: white;
-  background: rgba(255,255,255,0.06);
+  background: linear-gradient(135deg, rgba(45,212,191,0.96), rgba(13,148,136,0.96));
   opacity: 0.92;
 }
 
