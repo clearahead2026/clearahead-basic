@@ -2729,17 +2729,19 @@ const labelStyle = {
               {showMainMenu && (
                 <div
                   style={{
-                    position: "absolute",
-                    top: 54,
-                    right: 0,
-                    width: 220,
-                    maxWidth: "calc(100vw - 48px)",
+                    position: isNarrowMobile ? "fixed" : "absolute",
+                    top: isNarrowMobile ? "calc(env(safe-area-inset-top, 0px) + 132px)" : 54,
+                    right: isNarrowMobile ? 16 : 0,
+                    left: isNarrowMobile ? 16 : "auto",
+                    width: isNarrowMobile ? "auto" : 220,
+                    maxWidth: isNarrowMobile ? "none" : "calc(100vw - 48px)",
                     borderRadius: 18,
                     border: "1px solid rgba(255,255,255,0.12)",
                     background: "linear-gradient(180deg, rgba(16,26,58,0.98) 0%, rgba(11,16,38,0.98) 100%)",
                     boxShadow: "0 20px 44px rgba(0,0,0,0.35)",
                     padding: 10,
-                    zIndex: 30,
+                    boxSizing: "border-box",
+                    zIndex: 9999,
                   }}
                 >
                   <div style={{ fontSize: 11, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65, padding: "4px 8px 8px" }}>
