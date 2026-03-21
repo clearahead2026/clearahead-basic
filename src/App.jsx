@@ -7,8 +7,10 @@ import "./App.css";
 // Basic One-Time Unlock (Android Google Play Billing via Digital Goods API)
 // =========================
 const CA_PLAY_BILLING_STORE_ID = "https://play.google.com/billing";
+const CA_PLAY_STORE_APP_URL = "https://play.google.com/store/apps/details?id=app.clearahead.basic";
 const CA_BASIC_UNLOCK_PRODUCT_ID = "basic_unlock"; // MUST match Play Console product ID exactly
 const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PRODUCT_ID;
+const CA_BASIC_UNLOCK_PURCHASE_OPTION_ID = CA_BASIC_UNLOCK_PRODUCT_ID;
 const CA_UNLOCK_STORAGE_KEY = "ca_basic_unlocked_v1";
 
 function caCanUsePlayBilling() {
@@ -19,7 +21,10 @@ function caCanUsePlayBilling() {
     if (!/Android/i.test(ua)) return false;
     if (/Windows/i.test(ua)) return false;
 
-    return typeof navigator.getDigitalGoodsService === "function";
+    return (
+      typeof navigator.getDigitalGoodsService === "function" ||
+      typeof window.getDigitalGoodsService === "function"
+    );
   } catch {
     return false;
   }
@@ -110,7 +115,8 @@ function CABasicUnlockOverlay({
                 background: "rgba(239,68,68,0.14)",
                 border: "1px solid rgba(239,68,68,0.35)",
                 color: "#FCA5A5",
-                fontSize: 13,
+                fontSize: 12,
+    minHeight: 42,
                 lineHeight: 1.4,
               }}
             >
@@ -275,8 +281,7 @@ function BillsGroupButton({ id, title, subtitle, billsSection, setBillsSection, 
     >
       <div>
         <div>{title}</div>
-        {subtitle && <div style={{ fontSize: 13,
-                  fontWeight: 900, opacity: 0.75, marginTop: 3 }}>{subtitle}</div>}
+        {subtitle && <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.75, marginTop: 3 }}>{subtitle}</div>}
       </div>
       <div style={{ fontWeight: 800, opacity: 0.9 }}>{open ? "▲" : "▼"}</div>
     </button>
@@ -683,8 +688,7 @@ function IncomeGroupButton({ id, title, subtitle, incomeSection, setIncomeSectio
     >
       <div>
         <div>{title}</div>
-        {subtitle && <div style={{ fontSize: 13,
-                  fontWeight: 900, opacity: 0.75, marginTop: 3 }}>{subtitle}</div>}
+        {subtitle && <div style={{ fontSize: 12, fontWeight: 900, opacity: 0.75, marginTop: 3 }}>{subtitle}</div>}
       </div>
       <div style={{ fontWeight: 800, opacity: 0.9 }}>{open ? "▲" : "▼"}</div>
     </button>
@@ -1056,6 +1060,9 @@ export default function App() {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [showProInfo, setShowProInfo] = useState(false);
   const [shareStatus, setShareStatus] = useState("");
+  const [homeView, setHomeView] = useState("setup");
+  const [showMainMenu, setShowMainMenu] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isPro, setIsPro] = useState(false);
   
 
@@ -1335,8 +1342,33 @@ async function handleShare() {
     } catch (e) {
       // User cancelled share, or browser blocked
       setShareStatus("");
+    } finally {
+      setShowMainMenu(false);
     }
   }
+
+  function handleLeaveReview() {
+    try {
+      setShowMainMenu(false);
+      const reviewUrl = "https://play.google.com/store/apps/details?id=app.clearahead.basic&showAllReviews=true";
+      window.open(reviewUrl, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function clearAllData() {
+    setShowResetConfirm(true);
+    return;
+
+    try {
+      localStorage.clear();
+    } catch (e) {
+      // ignore
+    }
+    window.location.reload();
+  }
+
   function goTo(nextStep) {
   setNavFrom(nextStep > step ? "forward" : "back");
   setStep(nextStep);
@@ -1418,6 +1450,13 @@ useEffect(() => {
 }, []);
 
 
+
+  useEffect(() => {
+    if (step !== 1) {
+      setShowMainMenu(false);
+      setHomeView("setup");
+    }
+  }, [step]);
 
 // Bills UI: when switching bill groups, close any open bill editor
 useEffect(() => {
@@ -2385,7 +2424,8 @@ const labelStyle = {
 
   const subLabel = {
   display: "block",
-  fontSize: 13,
+  fontSize: 12,
+    minHeight: 42,
                   fontWeight: 900,
   opacity: 0.82,
   color: "rgba(241,245,249,0.85)",
@@ -2402,6 +2442,52 @@ const labelStyle = {
   boxShadow:
     "0 10px 24px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.03) inset",
 };
+
+  const homeQuickButtonStyle = {
+    width: "100%",
+    boxSizing: "border-box",
+    display: "inline-flex",
+    justifyContent: "center",
+    textAlign: "center",
+    cursor: "pointer",
+    appearance: "none",
+    WebkitAppearance: "none",
+    color: "white",
+    alignItems: "center",
+    gap: 0,
+    lineHeight: 1.15,
+    whiteSpace: "nowrap",
+    padding: "10px 12px",
+    borderRadius: 999,
+    border: "1px solid rgba(94,234,212,0.35)",
+    background: "linear-gradient(135deg, rgba(45,212,191,0.24), rgba(20,184,166,0.24))",
+    boxShadow: "0 10px 24px rgba(20,184,166,0.14)",
+    opacity: 0.98,
+    fontSize: 12,
+    minHeight: 42,
+    fontWeight: 900,
+  };
+
+  const menuButtonStyle = {
+    width: "100%",
+    textAlign: "left",
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "none",
+    background: "transparent",
+    color: "rgba(241,245,249,0.96)",
+    fontWeight: 800,
+    cursor: "pointer",
+    display: "block",
+  };
+
+  const menuAccentButtonStyle = {
+    ...menuButtonStyle,
+    border: "1px solid rgba(168,85,247,0.45)",
+    background: "linear-gradient(135deg, rgba(168,85,247,0.98), rgba(124,58,237,0.98))",
+    color: "white",
+    boxShadow: "0 12px 28px rgba(124,58,237,0.22)",
+  };
 
   const helpBox = {
   marginTop: 12,
@@ -2431,7 +2517,6 @@ const labelStyle = {
 
   function renderStepper(activeStep) {
   let steps = [
-    { n: 1, label: "Overview" },
     { n: 2, label: "Income" },
     { n: 3, label: "Fixed bills" },
     { n: 4, label: "Extras" },
@@ -2456,15 +2541,14 @@ const labelStyle = {
     border: "1px solid rgba(255,255,255,0.12)",
     background: active ? "rgba(47,122,127,0.28)" : "rgba(0,0,0,0.20)",
     opacity: active ? 1 : 0.9,
-    fontSize: 13,
+    fontSize: 12,
+    minHeight: 42,
     fontWeight: 900,
   });
 
   // Custom layout on Page 1: tidy grid + full-width calendar
   if (activeStep === 1) {
     const gridItems = [
-      { n: 1, label: "Overview" },
-      { n: 5, label: "Review" },
       { n: 2, label: "Income" },
       { n: 3, label: "Fixed bills" },
     ];
@@ -2489,6 +2573,7 @@ const labelStyle = {
               key={s.n}
               onClick={() => setStep(s.n)}
               aria-current={active ? "step" : undefined}
+              className={s.label === "Review" ? "caBtnPurple" : "caBtnTeal"}
               style={{
                 ...stepBtnStyle(active),
                 gridColumn: s.full ? "1 / -1" : undefined,
@@ -2516,7 +2601,11 @@ const labelStyle = {
         }}
       >
         {steps
-          .filter((s) => s.label !== "Extras")
+          .filter((s) => {
+            if (s.label === "Extras" || s.label === "Home") return false;
+            if ((activeStep === 4 || activeStep === 5) && s.label === "Review") return false;
+            return true;
+          })
           .map((s) => {
             const active = s.n === activeStep;
             return (
@@ -2525,6 +2614,7 @@ const labelStyle = {
                 key={s.n}
                 onClick={() => setStep(s.n)}
                 aria-current={active ? "step" : undefined}
+                className={s.label === "Review" ? "caBtnPurple" : "caBtnTeal"}
                 style={{
                   ...stepBtnStyle(active),
                   width: "100%",
@@ -2565,27 +2655,42 @@ const labelStyle = {
         /* Modal scrolling on mobile */
         .caModalOverlay { overflow-y: auto !important; -webkit-overflow-scrolling: touch; align-items: flex-start !important; }
         .caModalCard { max-height: calc(100vh - 32px) !important; overflow-y: auto !important; }
+        .appShell button.caBtnPurple {
+          border: 1px solid rgba(168,85,247,0.45) !important;
+          background: linear-gradient(135deg, rgba(168,85,247,0.98), rgba(124,58,237,0.98)) !important;
+          color: white !important;
+          box-shadow: 0 12px 28px rgba(124,58,237,0.30) !important;
+        }
+        .appShell button.caBtnTeal {
+          border: 1px solid rgba(94,234,212,0.42) !important;
+          background: linear-gradient(135deg, rgba(45,212,191,0.96), rgba(13,148,136,0.96)) !important;
+          color: white !important;
+          box-shadow: 0 12px 28px rgba(13,148,136,0.24) !important;
+        }
+        .appShell button[disabled] {
+          box-shadow: none !important;
+        }
       `}</style>
 <div className="ca-container">
 
       {step === 1 && (
         <div style={cardStyle}>
-          <div className="caHeaderRow" style={{ display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 12 }}>
-            <div className="caHeaderLeft" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0, justifyContent: "center", textAlign: "center" }}>
+          <div className="caHeaderRow" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+            <div className="caHeaderLeft" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0, justifyContent: "center", textAlign: "center", flex: 1 }}>
               <h1 className="caTitle"
                 style={{
-  fontWeight: 900,
-  fontSize: 50,                margin: 0,
-  padding: 0,
-// nearly double size
-  lineHeight: 1,             // keeps it tight vertically
-  color: "#a855f7",
-  WebkitTextStroke: "0.5px rgba(255,255,255,0.55)",  // subtle edge (optional but nice)
-  textShadow:
-    "0 0 6px rgba(255,255,255,0.55), " +
-    "0 0 14px rgba(255,255,255,0.35), " +
-    "0 0 26px rgba(255,255,255,0.18)",
-}}
+                  fontWeight: 900,
+                  fontSize: 50,
+                  margin: 0,
+                  padding: 0,
+                  lineHeight: 1,
+                  color: "#a855f7",
+                  WebkitTextStroke: "0.5px rgba(255,255,255,0.55)",
+                  textShadow:
+                    "0 0 6px rgba(255,255,255,0.55), " +
+                    "0 0 14px rgba(255,255,255,0.35), " +
+                    "0 0 26px rgba(255,255,255,0.18)",
+                }}
               >
                 ClearAhead
               </h1>
@@ -2594,78 +2699,114 @@ const labelStyle = {
               </div>
             </div>
 
-            <div className="caHeaderRight" style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
+            <div style={{ position: "relative", flexShrink: 0 }}>
               <button
+                className="caBtnPurple"
                 type="button"
-                onClick={handleShare}
+                aria-label="Open menu"
+                onClick={() => setShowMainMenu((prev) => !prev)}
                 style={{
-                  background: "#8b5cf6",
+                  width: 46,
+                  height: 46,
+                  borderRadius: 14,
+                  border: "1px solid rgba(168,85,247,0.45)",
+                  background: "linear-gradient(135deg, rgba(168,85,247,0.98), rgba(124,58,237,0.98))",
                   color: "white",
-                  border: "none",
-                  padding: "8px 14px",
-                  borderRadius: 999,
-                  fontWeight: 800,
                   cursor: "pointer",
-                  whiteSpace: "normal",
-                display: "block",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 12px 28px rgba(124,58,237,0.30)",
                 }}
               >
-                Share
+                <div style={{ display: "grid", gap: 4 }}>
+                  <span style={{ display: "block", width: 18, height: 2, borderRadius: 99, background: "white" }} />
+                  <span style={{ display: "block", width: 18, height: 2, borderRadius: 99, background: "white" }} />
+                  <span style={{ display: "block", width: 18, height: 2, borderRadius: 99, background: "white" }} />
+                </div>
               </button>
 
-              {!isPro ? (
-                <button
-                  type="button"
-                  onClick={() => setShowProInfo(true)}
-                  title="ClearAhead Pro"
-                  style={{
-                    background: "rgba(168,85,247,0.18)",
-                    color: "rgba(241,245,249,0.96)",
-                    border: "1px solid rgba(168,85,247,0.45)",
-                    padding: "8px 14px",
-                    borderRadius: 999,
-                    fontWeight: 900,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    overflowWrap: "normal",
-                  }}
-                >
-                  Go Pro
-                </button>
-              ) : (
+              {showMainMenu && (
                 <div
-                  title="ClearAhead Pro edition"
                   style={{
-                    background: "rgba(168,85,247,0.18)",
-                    color: "rgba(241,245,249,0.96)",
-                    border: "1px solid rgba(168,85,247,0.45)",
-                    padding: "8px 14px",
-                    borderRadius: 999,
-                    fontWeight: 900,
-                    whiteSpace: "nowrap",
+                    position: "absolute",
+                    top: 54,
+                    right: 0,
+                    width: 220,
+                    maxWidth: "calc(100vw - 48px)",
+                    borderRadius: 18,
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "linear-gradient(180deg, rgba(16,26,58,0.98) 0%, rgba(11,16,38,0.98) 100%)",
+                    boxShadow: "0 20px 44px rgba(0,0,0,0.35)",
+                    padding: 10,
+                    zIndex: 30,
                   }}
                 >
-                  Pro
+                  <div style={{ fontSize: 11, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65, padding: "4px 8px 8px" }}>
+                    Menu
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {!isPro ? (
+                      <button
+                        type="button"
+                        onClick={() => { setShowProInfo(true); setShowMainMenu(false); }}
+                        style={menuButtonStyle}
+                      >
+                        Go Pro
+                      </button>
+                    ) : (
+                      <div style={{ ...menuButtonStyle, cursor: "default", opacity: 0.72 }}>
+                        Pro
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => { setShowAbout(true); setShowMainMenu(false); }}
+                      style={menuButtonStyle}
+                    >
+                      About
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => { setShowDisclaimer(true); setShowMainMenu(false); }}
+                      style={menuButtonStyle}
+                    >
+                      Disclaimer
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={clearAllData}
+                      style={menuButtonStyle}
+                    >
+                      Reset data
+                    </button>
+
+                    <div style={{ height: 4 }} />
+
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      className="caBtnPurple"
+                      style={menuAccentButtonStyle}
+                    >
+                      Share
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleLeaveReview}
+                      className="caBtnPurple"
+                      style={menuAccentButtonStyle}
+                    >
+                      Give us a review
+                    </button>
+                  </div>
                 </div>
               )}
-
-              <button
-                type="button"
-                onClick={() => setShowAbout(true)}
-                style={{
-                  background: "#8b5cf6",
-                  color: "white",
-                  border: "none",
-                  padding: "8px 14px",
-                  borderRadius: 999,
-                  fontWeight: 800,
-                  cursor: "pointer",
-                  whiteSpace: "normal",
-                overflowWrap: "anywhere",
-                }}
-              >
-                About
-              </button>
             </div>
           </div>
 
@@ -2674,448 +2815,320 @@ const labelStyle = {
               {shareStatus}
             </div>
           )}
-          <div style={{ marginTop: 10 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: "rgba(255,255,255,0.95)", marginBottom: 6 }}>
-              Quick action buttons
+
+          {showResetConfirm && (
+            <div className="caModalOverlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 1000 }}>
+              <div className="caModalCard" style={{ width: "100%", maxWidth: 420, borderRadius: 20, border: "1px solid rgba(255,255,255,0.12)", background: "linear-gradient(180deg, rgba(16,26,58,0.98) 0%, rgba(11,16,38,0.98) 100%)", boxShadow: "0 20px 44px rgba(0,0,0,0.35)", padding: 18 }}>
+                <div style={{ fontWeight: 900, fontSize: 20, marginBottom: 10 }}>Reset data</div>
+                <div style={{ lineHeight: 1.5, opacity: 0.92 }}>
+                  This will reset all your ClearAhead data and let you start fresh.<br /><br />
+                  This cannot be undone. Are you sure?
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 18 }}>
+                  <button type="button" onClick={() => setShowResetConfirm(false)} style={menuButtonStyle}>Cancel</button>
+                  <button type="button" className="caBtnPurple" onClick={confirmClearAllData} style={{ ...menuAccentButtonStyle, textAlign: "center" }}>Reset data</button>
+                </div>
+              </div>
             </div>
-            <div style={{ display: "grid", gap: 8 }}>
+          )}
+
+          <div style={{ marginTop: 14 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "rgba(255,255,255,0.95)", marginBottom: 6 }}>
+              Quick actions
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 8, rowGap: 8, alignItems: "stretch" }}>
               <button
                 type="button"
                 onClick={() => { setFocusSection("spend"); goTo(4); }}
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  display: "inline-flex",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  appearance: "none",
-                  WebkitAppearance: "none",
-                  color: "inherit",
-                  alignItems: "center",
-                  gap: 0,
-                  padding: "10px 12px",
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(0,0,0,0.20)",
-                  opacity: 0.92,
-                  fontSize: 13,
-                  fontWeight: 900,
-                }}
+                className="caBtnTeal"
+                style={homeQuickButtonStyle}
               >
-                <div
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 999,
-                    display: "none",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 900,
-                    fontSize: 13,
-                  fontWeight: 900,
-                    background: "rgba(255,255,255,0.10)",
-                  }}
-                >
-                  L
-                </div>
-                <div style={{ fontWeight: 800 }}>Log spending</div>
+                Log spending
               </button>
 
               <button
                 type="button"
                 onClick={() => { setFocusSection("whatif"); goTo(4); }}
                 title="What if I buy this?"
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  display: "inline-flex",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  appearance: "none",
-                  WebkitAppearance: "none",
-                  color: "inherit",
-                  alignItems: "center",
-                  gap: 0,
-                  padding: "10px 12px",
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(0,0,0,0.20)",
-                  opacity: 0.92,
-                  fontSize: 13,
-                  fontWeight: 900,
-                }}
+                className="caBtnTeal"
+                style={homeQuickButtonStyle}
               >
-                <div
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 999,
-                    display: "none",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 900,
-                    fontSize: 12,
-                    background: "rgba(255,255,255,0.10)",
-                  }}
-                >
-                  W
-                </div>
-                <div style={{ fontWeight: 800 }}>What if I buy this?</div>
+                What if I buy this?
               </button>
 
               <button
                 type="button"
                 onClick={() => { setFocusSection("goals"); goTo(4); }}
-                style={{
-                  display: "inline-flex",
-                  cursor: "pointer",
-                  appearance: "none",
-                  WebkitAppearance: "none",
-                  color: "inherit",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  lineHeight: 1.1,
-                  
-                  gap: 0,
-                  padding: "6px 10px",
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(0,0,0,0.20)",
-                  opacity: 0.92,
-                  fontSize: 12,
-                }}
+                className="caBtnTeal"
+                style={{ ...homeQuickButtonStyle, gridColumn: "1 / -1" }}
               >
-                <div
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 999,
-                    display: "none",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: 900,
-                    fontSize: 12,
-                    background: "rgba(255,255,255,0.10)",
-                  }}
-                >
-                  G
-                </div>
-                <div style={{ fontWeight: 800 }}>Savings goals</div>
+                Savings goals
               </button>
             </div>
           </div>
 
           {renderStepper(1)}
-          {renderHelp("What to do here", ["Enter the date you want to start from (today is fine).", "Enter your current bank balance right now.", "Then tap Continue to add income and bills."])}
 
+          {homeView === "setup" ? (
+            <>
+              {renderHelp("What to do here", ["Enter the date you want to start from (today is fine).", "Enter your current bank balance right now.", "Then tap Continue to add income and bills."])}
 
-          <div
-  style={{
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 10,
-    padding: "6px 10px",
-    borderRadius: 999,
-    border: "1px solid rgba(226,232,240,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    fontSize: 12,
-    opacity: 0.9,
-  }}
->
-  Page 1 of 5
-</div>
-          <p style={{ opacity: 0.88, marginTop: 8 }}>Bills come first. ClearAhead shows what may be available after we look ahead for the next {effectiveLookaheadWeeks} weeks.</p>
-
-
-
-          <div style={{ marginTop: 16, display: "grid", gap: 12, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
-            <div>
-              <label style={subLabel}>Start date</label>
-              <input type="date" value={startDate} onChange={(e) => {
-                const v = e.target.value;
-                setStartDate(v);
-                setStartDateAuto(v === todayISO());
-              }} style={inputStyle} />
-            </div>
-
-            <div>
-              <label style={subLabel}>Current balance ({caCurrencySymbol})</label>
-              <input value={balance} onChange={(e) => setBalance(sanitizeMoneyInput(e.target.value))} inputMode="decimal" placeholder="e.g. 943.33" style={inputStyle} />
-            </div>
-
-            <button
-  disabled={!canContinueStep1}
-  onClick={() => goTo(2)}
-  style={{
-    marginTop: 8,
-    padding: 12,
-    borderRadius: 12,
-    border: "none",
-    cursor: canContinueStep1 ? "pointer" : "not-allowed",
-    opacity: canContinueStep1 ? 1 : 0.45,
-    background:
-      "linear-gradient(135deg, rgba(168,85,247,0.95), rgba(99,102,241,0.95))",
-    color: "white",
-    boxShadow: "0 12px 30px rgba(99,102,241,0.45)",
-    fontWeight: 800,
-    width: "100%",
-    boxSizing: "border-box",
-  }}
->
-  Continue
-</button>
-
-<button
-  onClick={() => goTo(5)}
-  style={{
-    marginTop: 10,
-    padding: 10,
-    borderRadius: 12,
-    border: "1px solid rgba(255,255,255,0.18)",
-    background: "rgba(255,255,255,0.06)",
-    color: "white",
-    width: "100%",
-    boxSizing: "border-box",
-    cursor: "pointer",
-    opacity: 0.92,
-    fontWeight: 800,
-  }}
->
-  Go to Review
-</button>
-
-            <div style={{ fontSize: 12, opacity: 0.65 }}>v1.20</div>
-
-          {/* Pro feature: Lookahead window slider (Basic locked to 5 weeks) */}
-          <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 14, border: "1px solid rgba(148,163,184,0.22)", background: "rgba(15,23,42,0.35)" }}>
-            <div style={{ fontWeight: 900, fontSize: 13, opacity: 0.92 }}>Lookahead window</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 8 }}>
-              <input
-                type="range"
-                min={5}
-                max={12}
-                step={1}
-                value={effectiveLookaheadWeeks}
-                disabled={!isPro}
-                onChange={(e) => {
-                  const n = parseInt(e.target.value, 10);
-                  setProLookaheadWeeks(Number.isFinite(n) ? Math.min(12, Math.max(5, n)) : 5);
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 10,
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(226,232,240,0.12)",
+                  background: "rgba(255,255,255,0.06)",
+                  fontSize: 12,
+                  opacity: 0.9,
                 }}
-                style={{ width: "100%", maxWidth: 260, boxSizing: "border-box", cursor: isPro ? "pointer" : "not-allowed" }}
-              />
-              <div style={{ fontWeight: 900, fontSize: 13 }}>
-                {effectiveLookaheadWeeks} weeks
+              >
+                Page 1 of 5
               </div>
-              {!isPro && (
-                <div style={{ fontSize: 12, opacity: 0.82 }}>
-                  Basic is locked to 5 weeks • Pro can extend to 12
+
+              <p style={{ opacity: 0.88, marginTop: 8 }}>
+                Start here first. Once these two details are entered, ClearAhead can build your short-term picture more clearly.
+              </p>
+
+              <div style={{ marginTop: 16, display: "grid", gap: 12, width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+                <div>
+                  <label style={subLabel}>Start date</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      setStartDate(v);
+                      setStartDateAuto(v === todayISO());
+                    }}
+                    style={inputStyle}
+                  />
                 </div>
-              )}
-            </div>
-          </div>
-<div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(0,0,0,0.12)", width: "100%", boxSizing: "border-box" }}>
-            <div style={{ fontSize: 12, opacity: 0.8 }}>Window</div>
-            <div style={{ fontWeight: 800 }}>
-              {displayUKDate(startDate)} → {displayUKDate(lookahead.windowEndISO)}
-            </div>
 
-            <div
-  style={{
-    marginTop: 14,
-    fontSize: 12,
-    letterSpacing: 0.3,
-    textTransform: "uppercase",
-    opacity: 0.65,
-  }}
->
-  Available now
-</div>
+                <div>
+                  <label style={subLabel}>Current balance ({caCurrencySymbol})</label>
+                  <input
+                    value={balance}
+                    onChange={(e) => setBalance(sanitizeMoneyInput(e.target.value))}
+                    inputMode="decimal"
+                    placeholder="e.g. 943.33"
+                    style={inputStyle}
+                  />
+                </div>
 
-<div
-  style={{
-    fontSize: 40,
-    fontWeight: 900,
-    letterSpacing: -0.8,
-    marginTop: 2,
-    color: "rgba(241,245,249,0.98)",
-  }}
->
-  {formatMoney(lookahead.mayBeAvailable.toFixed(2))}
-</div>
+                <button
+                  className="caBtnPurple"
+                  disabled={!canContinueStep1}
+                  onClick={() => goTo(2)}
+                  style={{
+                    marginTop: 8,
+                    padding: 12,
+                    borderRadius: 12,
+                    border: "none",
+                    cursor: canContinueStep1 ? "pointer" : "not-allowed",
+                    opacity: canContinueStep1 ? 1 : 0.45,
+                    background: "linear-gradient(135deg, rgba(168,85,247,0.95), rgba(99,102,241,0.95))",
+                    color: "white",
+                    boxShadow: "0 12px 30px rgba(99,102,241,0.45)",
+                    fontWeight: 800,
+                    width: "100%",
+                    boxSizing: "border-box",
+                  }}
+                >
+                  Continue
+                </button>
 
-<div style={{ marginTop: 10, fontSize: 12, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65 }}>
-  Safe number
-</div>
-<div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.6, marginTop: 2, color: "rgba(241,245,249,0.98)" }}>
-  {formatMoney(Math.max(0, lookahead.mayBeAvailable - 250).toFixed(2))}
-</div>
-{lookahead.mayBeAvailable > 0 && lookahead.mayBeAvailable - 250 <= 0 && (
-  <div style={{ marginTop: 8, fontSize: 12, opacity: 0.88, lineHeight: 1.35 }}>
-    <div style={{ fontWeight: 800 }}>You still have Available now to use.</div>
-    <div>Safe to spend is £0 because ClearAhead is holding back a little for safety.</div>
-  </div>
-)}
-<div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
-  Safe number is a cautious guide — it leaves a small {formatMoney(250)} buffer aside for surprises.
-</div>
-<div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
-  Available now is your projected amount across the next {effectiveLookaheadWeeks} weeks, before the safety buffer.
-</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 2 }}>
+                  <button
+                    className="caBtnPurple"
+                    onClick={() => setHomeView("overview")}
+                    style={{
+                      padding: 10,
+                      borderRadius: 12,
+                      border: "1px solid rgba(168,85,247,0.45)",
+                      color: "white",
+                      width: "100%",
+                      boxSizing: "border-box",
+                      cursor: "pointer",
+                      fontWeight: 800,
+                    }}
+                  >
+                    Overview
+                  </button>
 
-            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Lowest projected balance in next {effectiveLookaheadWeeks} weeks</div>
-            <div style={{ fontWeight: 800 }}>
-              {formatMoney(lookahead.lowest.toFixed(2))} on {displayUKDate(lookahead.lowestISO)}
-            </div>
+                  <button
+                    className="caBtnPurple"
+                    onClick={() => goTo(5)}
+                    style={{
+                      padding: 10,
+                      borderRadius: 12,
+                      border: "1px solid rgba(168,85,247,0.45)",
+                      color: "white",
+                      width: "100%",
+                      boxSizing: "border-box",
+                      cursor: "pointer",
+                      fontWeight: 800,
+                    }}
+                  >
+                    Review
+                  </button>
+                </div>
 
-            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Confidence</div>
-            <div style={{ fontWeight: 800 }}>{lookahead.confidence}</div>
+                <div style={{ fontSize: 12, opacity: 0.65 }}>v1.20</div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div
+                style={{
+                  marginTop: 12,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: 18 }}>Overview</div>
+                  <div style={{ fontSize: 12, opacity: 0.8 }}>
+                    Your 5-week picture is shown here on its own page to keep the home screen cleaner.
+                  </div>
+                </div>
 
-            <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>
-              Why this confidence:
-              <ul style={{ marginTop: 6, marginBottom: 0, paddingLeft: 18 }}>
-                {lookahead.reasons.map((r, i) => (
-                  <li key={i} style={{ marginBottom: 4 }}>
-                    {r}
-                  </li>
-                ))}
-              </ul>
-            </div>
+                <button
+                  className="caBtnPurple"
+                  type="button"
+                  onClick={() => setHomeView("setup")}
+                  style={{
+                    padding: "8px 12px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(255,255,255,0.18)",
+                    background: "rgba(255,255,255,0.06)",
+                    color: "white",
+                    fontWeight: 800,
+                    cursor: "pointer",
+                  }}
+                >
+                  Back to setup
+                </button>
+              </div>
 
-            <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
-              Gentle nudge: If possible, keeping a small buffer can help with surprises (repairs, school costs) and future plans.
-            </div>
-
-            {lookahead.lowest < 0 && (
-              <div style={{ marginTop: 12, padding: 10, borderRadius: 12, border: "1px solid rgba(255,170,0,0.35)", background: "rgba(255,170,0,0.10)" }}>
-                <div style={{ fontWeight: 900 }}>⚠️ Tight period detected</div>
-                <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6 }}>
-                  Based on what’s entered (including spending + goals if included), the projection dips below {formatMoney(0)} at least once in the next {effectiveLookaheadWeeks} weeks.
+              <div style={{ marginTop: 14, padding: "10px 12px", borderRadius: 14, border: "1px solid rgba(148,163,184,0.22)", background: "rgba(15,23,42,0.35)" }}>
+                <div style={{ fontWeight: 900, fontSize: 12,
+    minHeight: 42, opacity: 0.92 }}>Lookahead window</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 8 }}>
+                  <input
+                    type="range"
+                    min={5}
+                    max={12}
+                    step={1}
+                    value={effectiveLookaheadWeeks}
+                    disabled={!isPro}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10);
+                      setProLookaheadWeeks(Number.isFinite(n) ? Math.min(12, Math.max(5, n)) : 5);
+                    }}
+                    style={{ width: "100%", maxWidth: 260, boxSizing: "border-box", cursor: isPro ? "pointer" : "not-allowed" }}
+                  />
+                  <div style={{ fontWeight: 900, fontSize: 13 }}>
+                    {effectiveLookaheadWeeks} weeks
+                  </div>
+                  {!isPro && (
+                    <div style={{ fontSize: 12, opacity: 0.82 }}>
+                      Basic is locked to 5 weeks • Pro can extend to 12
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
-          <div style={{ marginTop: 14, display: "block", gap: 10 }}>
-  <div style={{ fontWeight: 900, opacity: 0.92, display: "none" }}>Quick actions</div>
 
-  <button
-    onClick={() => {
-  setFocusSection("spend");
-  goTo(4);
-}}
-    style={{
-      display: "none",
-      padding: 12,
-      borderRadius: 14,
-      border: "1px solid rgba(255,255,255,0.18)",
-      background: "rgba(255,255,255,0.06)",
-      color: "white",
-      cursor: "pointer",
-      fontWeight: 900,
-      width: "100%",
-    }}
-  >
-    Log spending
-  </button>
+              <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(0,0,0,0.12)", width: "100%", boxSizing: "border-box" }}>
+                <div style={{ fontSize: 12, opacity: 0.8 }}>Window</div>
+                <div style={{ fontWeight: 800 }}>
+                  {displayUKDate(startDate)} → {displayUKDate(lookahead.windowEndISO)}
+                </div>
 
-  <button
-    onClick={() => {
-  setFocusSection("whatif");
-  goTo(4);
-}}
-    style={{
-      display: "none",
-      padding: 12,
-      borderRadius: 14,
-      border: "1px solid rgba(255,255,255,0.18)",
-      background: "rgba(255,255,255,0.06)",
-      color: "white",
-      cursor: "pointer",
-      fontWeight: 900,
-      width: "100%",
-    }}
-  >
-    What if I buy this?
-  </button>
+                <div
+                  style={{
+                    marginTop: 14,
+                    fontSize: 12,
+                    letterSpacing: 0.3,
+                    textTransform: "uppercase",
+                    opacity: 0.65,
+                  }}
+                >
+                  Available now
+                </div>
 
-  <button
-    onClick={() => {
-  setFocusSection("goals");
-  // v1.23 — Savings goals quick action should open Extras (step 4), not Bills
-  goTo(4);
-}}
-    style={{
-      display: "none",
-      padding: 12,
-      borderRadius: 14,
-      border: "1px solid rgba(255,255,255,0.18)",
-      background: "rgba(255,255,255,0.06)",
-      color: "white",
-      cursor: "pointer",
-      fontWeight: 900,
-      width: "100%",
-    }}
-  >
-    Savings goals
-  </button>
+                <div
+                  style={{
+                    fontSize: 40,
+                    fontWeight: 900,
+                    letterSpacing: -0.8,
+                    marginTop: 2,
+                    color: "rgba(241,245,249,0.98)",
+                  }}
+                >
+                  {formatMoney(lookahead.mayBeAvailable.toFixed(2))}
+                </div>
 
-  <div style={{ fontSize: 12, opacity: 0.75, display: "none" }}>
-    Tip: you can come back here any time — this is your home screen.
-  </div>
-<div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 10, width: "100%", boxSizing: "border-box", flexWrap: "wrap" }}>
-  <button
-    type="button"
-    onClick={() => setShowDisclaimer(true)}
-    style={{
-      padding: "6px 12px",
-      borderRadius: 999,
-      border: "1px solid rgba(255,255,255,0.25)",
-      background: "rgba(255,255,255,0.12)",
-      color: "white",
-      fontWeight: 700,
-      cursor: "pointer",
-      fontSize: 12,
-    }}
-  >
-    Disclaimer
-  </button>
+                <div style={{ marginTop: 10, fontSize: 12, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65 }}>
+                  Safe number
+                </div>
+                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.6, marginTop: 2, color: "rgba(241,245,249,0.98)" }}>
+                  {formatMoney(Math.max(0, lookahead.mayBeAvailable - 250).toFixed(2))}
+                </div>
+                {lookahead.mayBeAvailable > 0 && lookahead.mayBeAvailable - 250 <= 0 && (
+                  <div style={{ marginTop: 8, fontSize: 12, opacity: 0.88, lineHeight: 1.35 }}>
+                    <div style={{ fontWeight: 800 }}>You still have Available now to use.</div>
+                    <div>Safe to spend is £0 because ClearAhead is holding back a little for safety.</div>
+                  </div>
+                )}
+                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
+                  Safe number is a cautious guide — it leaves a small {formatMoney(250)} buffer aside for surprises.
+                </div>
+                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
+                  Available now is your projected amount across the next {effectiveLookaheadWeeks} weeks, before the safety buffer.
+                </div>
 
-  <button
-    type="button"
-    onClick={() => {
-      const ok = window.confirm(
-        "This will clear ALL your data and let you start fresh.\n\nThis cannot be undone. Are you sure?"
-      );
-      if (!ok) return;
+                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Lowest projected balance in next {effectiveLookaheadWeeks} weeks</div>
+                <div style={{ fontWeight: 800 }}>
+                  {formatMoney(lookahead.lowest.toFixed(2))} on {displayUKDate(lookahead.lowestISO)}
+                </div>
 
-      try {
-        localStorage.clear();
-      } catch (e) {
-        // ignore
-      }
-      window.location.reload();
-    }}
-    style={{
-      padding: "6px 12px",
-      borderRadius: 999,
-      border: "1px solid rgba(255,255,255,0.25)",
-      background: "rgba(255,255,255,0.12)",
-      color: "white",
-      fontWeight: 700,
-      cursor: "pointer",
-      fontSize: 12,
-    }}
-  >
-    Clear all data
-  </button>
-</div>
+                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Confidence</div>
+                <div style={{ fontWeight: 800 }}>{lookahead.confidence}</div>
 
-</div>
-            
-          </div>
+                <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>
+                  Why this confidence:
+                  <ul style={{ marginTop: 6, marginBottom: 0, paddingLeft: 18 }}>
+                    {lookahead.reasons.map((r, i) => (
+                      <li key={i} style={{ marginBottom: 4 }}>
+                        {r}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
+                  Gentle nudge: If possible, keeping a small buffer can help with surprises (repairs, school costs) and future plans.
+                </div>
+
+                {lookahead.lowest < 0 && (
+                  <div style={{ marginTop: 12, padding: 10, borderRadius: 12, border: "1px solid rgba(255,170,0,0.35)", background: "rgba(255,170,0,0.10)" }}>
+                    <div style={{ fontWeight: 900 }}>⚠️ Tight period detected</div>
+                    <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6 }}>
+                      Based on what’s entered (including spending + goals if included), the projection dips below {formatMoney(0)} at least once in the next {effectiveLookaheadWeeks} weeks.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -3580,6 +3593,7 @@ const labelStyle = {
     )}
 
     <button
+      className="caBtnPurple"
       disabled={!canContinueStep2}
       onClick={() => goTo(3)}
       style={{
@@ -4824,11 +4838,19 @@ const labelStyle = {
 
 
 
-    <button className="caBtn caBtnPrimary" onClick={() => setStep(5)}>
+    <button
+      className="caBtn caBtnPrimary"
+      onClick={() => setStep(5)}
+      style={{ marginTop: 14, display: "block" }}
+    >
       Continue to Review
     </button>
 
-    <button className="caBtn caBtnGhost" onClick={() => setStep(3)}>
+    <button
+      className="caBtn caBtnGhost"
+      onClick={() => setStep(3)}
+      style={{ marginTop: 10, display: "block" }}
+    >
       Back
     </button>
   </div>
@@ -4916,77 +4938,9 @@ const labelStyle = {
   </div>
 </div>
 
-          <div style={{ ...sectionBox, marginTop: 14 }}>
-            <div style={{ fontWeight: 900, marginBottom: 10 }}>Quick action buttons</div>
-
-            <div style={{ display: "grid", gap: 10 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setFocusSection("spend");
-                  goTo(4);
-                }}
-                style={{
-                  padding: 12,
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "white",
-                  cursor: "pointer",
-                  fontWeight: 900,
-                  width: "100%",
-                  textAlign: "center",
-                }}
-              >
-                Log spending
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setFocusSection("whatif");
-                  goTo(4);
-                }}
-                style={{
-                  padding: 12,
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "white",
-                  cursor: "pointer",
-                  fontWeight: 900,
-                  width: "100%",
-                  textAlign: "center",
-                }}
-              >
-                What if I buy this?
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setFocusSection("goals");
-                  goTo(4);
-                }}
-                style={{
-                  padding: 12,
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "white",
-                  cursor: "pointer",
-                  fontWeight: 900,
-                  width: "100%",
-                  textAlign: "center",
-                }}
-              >
-                Savings goals
-              </button>
-            </div>
-          </div>
-
           <div style={{ display: "grid", gap: 10, marginTop: 14 }}>
             <button
+              className="caBtnPurple"
               type="button"
               onClick={() => goTo(1)}
               style={{
@@ -5003,7 +4957,7 @@ const labelStyle = {
                 boxShadow: "0 12px 30px rgba(99,102,241,0.35)",
               }}
             >
-              Back to Overview
+              Back to setup
             </button>
 
             </div>
@@ -5021,7 +4975,8 @@ const labelStyle = {
     <div style={{ fontWeight: 900, marginBottom: 6 }}>Pro insights</div>
     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 8 }}>Pro insights gives you a in depth view of all events over your full window.</div>
 
-    <div style={{ display: "grid", gap: 6, fontSize: 13, opacity: 0.92 }}>
+    <div style={{ display: "grid", gap: 6, fontSize: 12,
+    minHeight: 42, opacity: 0.92 }}>
       <div>
         <span style={{ opacity: 0.8 }}>Total income:</span>{" "}
         <span style={{ fontWeight: 900 }}>{formatMoney((proInsights.incomeTotal || 0).toFixed(2))}</span>
@@ -5070,7 +5025,8 @@ const labelStyle = {
                 background: "rgba(0,0,0,0.16)",
               }}
             >
-              <div style={{ fontSize: 13, opacity: 0.95 }}>{x.label}</div>
+              <div style={{ fontSize: 12,
+    minHeight: 42, opacity: 0.95 }}>{x.label}</div>
               <div style={{ fontWeight: 900 }}>{formatMoney((x.amt || 0).toFixed(2))}</div>
             </div>
           ))}
@@ -5097,7 +5053,8 @@ const labelStyle = {
                 background: "rgba(0,0,0,0.16)",
               }}
             >
-              <div style={{ fontSize: 13, opacity: 0.95 }}>{x.label}</div>
+              <div style={{ fontSize: 12,
+    minHeight: 42, opacity: 0.95 }}>{x.label}</div>
               <div style={{ fontWeight: 900 }}>{formatMoney((x.amt || 0).toFixed(2))}</div>
             </div>
           ))}
@@ -5106,67 +5063,6 @@ const labelStyle = {
     )}
   </div>
 )}
-
-          <button
-            type="button"
-            onClick={() => goTo(2)}
-            style={{
-              marginTop: 16,
-              padding: 10,
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.18)",
-              background: "rgba(255,255,255,0.06)",
-              color: "white",
-              width: "100%",
-              cursor: "pointer",
-              opacity: 0.92,
-              fontWeight: 800,
-            }}
-          >
-            Edit Income
-          </button>
-
-          <button
-            type="button"
-            onClick={() => goTo(3)}
-            style={{
-              marginTop: 10,
-              padding: 10,
-              borderRadius: 12,
-              border: "1px solid rgba(255,255,255,0.18)",
-              background: "rgba(255,255,255,0.06)",
-              color: "white",
-              width: "100%",
-              cursor: "pointer",
-              opacity: 0.92,
-              fontWeight: 800,
-            }}
-          >
-            Edit Fixed Bills
-          </button>
-
-<button
-  onClick={() => {
-    const subject = encodeURIComponent("ClearAhead Feedback");
-    const body = encodeURIComponent("Hi ClearAhead team,\n\nMy feedback:\n");
-    window.location.href = `mailto:ClearAhead2026@gmail.com?subject=${subject}&body=${body}`;
-  }}
-  style={{
-              marginTop: 16,
-              padding: 12,
-              borderRadius: 12,
-              border: "none",
-              cursor: "pointer",
-              background:
-                "linear-gradient(135deg, rgba(168,85,247,0.95), rgba(99,102,241,0.95))",
-              color: "white",
-              fontWeight: 900,
-              width: "100%",
-              boxShadow: "0 12px 30px rgba(99,102,241,0.35)",
-            }}
->
-  Send Feedback
-</button>
 
         </div>
       )}
@@ -5858,7 +5754,7 @@ return (
               </button>
             </div>
 
-            <div style={{ marginTop: 10, opacity: 0.92, lineHeight: 1.45, fontSize: 14 }}>
+            <div style={{ marginTop: 10, opacity: 0.92, lineHeight: 1.45, fontSize: 14, textAlign: "left" }}>
               ClearAhead is a budgeting and planning tool. It does not provide financial advice.
               You are responsible for your decisions. Figures are estimates based on the data you enter.
               If you need regulated financial advice, speak to a qualified professional.
@@ -5931,7 +5827,7 @@ return (
               </button>
             </div>
 
-            <div style={{ marginTop: 12, lineHeight: 1.6, fontSize: 14, opacity: 0.92 }}>
+            <div style={{ marginTop: 12, lineHeight: 1.6, fontSize: 14, opacity: 0.92, textAlign: "left" }}>
               <p style={{ marginTop: 0 }}>
                 ClearAhead Pro is a separate edition that adds deeper clarity on top of Basic — without changing how Basic works.
               </p>
@@ -6030,6 +5926,8 @@ return (
     alignItems: "center",
     fontSize: 12,
     opacity: 0.78,
+    justifyContent: "flex-start",
+    textAlign: "left",
   }}
 >
   <span style={{ fontWeight: 800 }}>Version:</span>
@@ -6044,7 +5942,7 @@ return (
 <div style={{ fontSize: 10, opacity: 0.55, marginTop: 6 }}>
   © 2026 ClearAhead. All rights reserved.
 </div>
-            <div style={{ marginTop: 12, lineHeight: 1.6, fontSize: 14, opacity: 0.92 }}>
+            <div style={{ marginTop: 12, lineHeight: 1.6, fontSize: 14, opacity: 0.92, textAlign: "left" }}>
               <p style={{ marginTop: 0 }}>
                 ClearAhead is a calm financial clarity tool for people who want to feel in control of the next few weeks —
                 without spreadsheets, pressure, or judgement.
