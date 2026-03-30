@@ -12,6 +12,7 @@ const CA_BASIC_UNLOCK_PRODUCT_ID = "basic_unlock"; // MUST match Play Console pr
 const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PRODUCT_ID;
 const CA_BASIC_UNLOCK_PURCHASE_OPTION_ID = CA_BASIC_UNLOCK_PRODUCT_ID;
 const CA_UNLOCK_STORAGE_KEY = "ca_basic_unlocked_v1";
+const CA_VERIFY_ENDPOINT = "/.netlify/functions/play-basic-verify";
 
 function caCanUsePlayBilling() {
   try {
@@ -971,6 +972,57 @@ export default function App() {
     try { localStorage.setItem(CA_UNLOCK_STORAGE_KEY, "1"); } catch { /* ignore */ }
   };
 
+  const caClearLocalUnlock = () => {
+    try { localStorage.removeItem(CA_UNLOCK_STORAGE_KEY); } catch { /* ignore */ }
+  };
+
+  const caGetPurchaseToken = (purchaseLike) => {
+    return (
+      purchaseLike?.purchaseToken ||
+      purchaseLike?.token ||
+      purchaseLike?.purchase_token ||
+      purchaseLike?.details?.purchaseToken ||
+      purchaseLike?.details?.token ||
+      purchaseLike?.details?.purchase_token ||
+      purchaseLike?.details?.paymentMethodData?.token ||
+      purchaseLike?.details?.paymentMethodData?.purchaseToken ||
+      ""
+    );
+  };
+
+  const caFindUnlockPurchase = (purchases) => {
+    if (!Array.isArray(purchases)) return null;
+    return purchases.find((p) => {
+      const id =
+        p?.sku ||
+        p?.productId ||
+        p?.itemId ||
+        p?.product ||
+        p?.id ||
+        "";
+      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
+    }) || null;
+  };
+
+  const caVerifyPurchaseWithServer = async (purchaseToken) => {
+    const res = await fetch(CA_VERIFY_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        purchaseToken,
+        productId: CA_BASIC_UNLOCK_PRODUCT_ID,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data?.error || "server_verification_failed");
+    }
+
+    return data;
+  };
+
   const caGetPlayBillingService = async () => {
   if (!caBillingEligible) throw new Error("billing_unavailable");
 
@@ -1013,28 +1065,35 @@ export default function App() {
   const caCheckEntitlement = async (service) => {
   try {
     const purchases = await service.listPurchases();
+    const hit = caFindUnlockPurchase(purchases);
 
-    const has = Array.isArray(purchases) && purchases.some((p) => {
-      const id =
-        p?.sku ||
-        p?.productId ||
-        p?.itemId ||
-        p?.product ||
-        p?.id ||
-        "";
+    if (!hit) {
+      setCaUnlocked(false);
+      caClearLocalUnlock();
+      return false;
+    }
 
-      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
-    });
+    const token = caGetPurchaseToken(hit);
+    if (!token) {
+      setCaUnlocked(false);
+      caClearLocalUnlock();
+      return false;
+    }
 
-    if (has) {
+    const verified = await caVerifyPurchaseWithServer(token);
+
+    if (verified?.ok && verified?.entitled) {
       setCaUnlocked(true);
       caStoreUnlockLocally();
       return true;
     }
+
+    setCaUnlocked(false);
+    caClearLocalUnlock();
+    return false;
   } catch {
-    // ignore
+    return false;
   }
-  return false;
 };
   // Show the About screen automatically on the very first launch (after install).
   // After the user closes it once, we remember that choice in localStorage.
@@ -1085,17 +1144,6 @@ export default function App() {
       setCaUnlockError("");
       setCaUnlockChecked(false);
 
-      // Fast path: local cache
-      try {
-        if (localStorage.getItem(CA_UNLOCK_STORAGE_KEY) === "1") {
-          setCaUnlocked(true);
-          setCaUnlockChecked(true);
-          return;
-        }
-      } catch {
-        // ignore
-      }
-
       setCaUnlockLoading(true);
       try {
   // wait briefly after app launch so Play Billing service is ready
@@ -1145,11 +1193,10 @@ export default function App() {
     const service = await caGetPlayBillingService();
 
     const methodData = [{
-      supportedMethods: CA_PLAY_BILLING_STORE_ID, // should be "https://play.google.com/billing"
+      supportedMethods: CA_PLAY_BILLING_STORE_ID,
       data: { sku: CA_BASIC_UNLOCK_PRODUCT_ID },
     }];
 
-    // Use a neutral total; Play shows the real price from Console.
     const details = {
       total: {
         label: "ClearAhead Basic Unlock",
@@ -1159,63 +1206,39 @@ export default function App() {
 
     const request = new window.PaymentRequest(methodData, details);
 
-    // Optional but helps some devices fail early instead of “cancelled”
     if (typeof request.canMakePayment === "function") {
       const canPay = await request.canMakePayment();
       if (!canPay) throw new Error("cannot_make_payment");
     }
 
     const response = await request.show();
-
-    // ---- IMPORTANT: acknowledge purchase token (non-consumable) ----
-    // Token location can vary; try the known spots safely.
-    const token =
-      response?.details?.purchaseToken ||
-      response?.details?.token ||
-      response?.details?.purchase_token ||
-      response?.details?.paymentMethodData?.token ||
-      response?.details?.paymentMethodData?.purchaseToken;
-
-    if (token) {
-      try {
-        // Digital Goods API supports acknowledge in TWA context
-        if (typeof service.acknowledge === "function") {
-          await service.acknowledge(token);
-        }
-      } catch (_) {
-        // ignore ack errors; entitlement check below is the source of truth
-      }
-    }
+    const token = caGetPurchaseToken(response);
 
     try { await response.complete("success"); } catch { /* ignore */ }
 
-    // Wait for entitlement to appear
-    let ok = false;
-    for (let i = 0; i < 8; i++) {
-      await new Promise((r) => setTimeout(r, 600));
-      ok = await caCheckEntitlement(service);
-      if (ok) break;
+    if (!token) {
+      throw new Error("missing_purchase_token");
     }
-    if (!ok) throw new Error("no_entitlement");
+
+    const verified = await caVerifyPurchaseWithServer(token);
+
+    if (!verified?.ok || !verified?.entitled) {
+      throw new Error(verified?.error || "purchase_not_verified");
+    }
 
     setCaUnlocked(true);
     caStoreUnlockLocally();
-
+    setCaUnlockError("");
   } catch (e) {
     const msg = String(e?.message || e || "").toLowerCase();
 
     if (msg.includes("already") || msg.includes("owned")) {
       try {
-        const service2 = await caGetPlayBillingService();
-        await new Promise((r) => setTimeout(r, 400));
-        const ok = await caCheckEntitlement(service2);
-        if (ok) {
-          setCaUnlocked(true);
-          caStoreUnlockLocally();
-          setCaUnlockError("");
-          return;
-        }
-      } catch (_) {}
+        await caHandleRestoreUnlock();
+        return;
+      } catch (_) {
+        // ignore and fall through to user-facing error below
+      }
     }
 
     setCaUnlockError("Billing error: " + String(e?.message || e || "unknown"));
@@ -1230,31 +1253,36 @@ export default function App() {
 
   try {
     const service = await caGetPlayBillingService();
-
-    // Pull purchases directly and match by product id safely
     const purchases = (await service.listPurchases?.()) || [];
-    const hit = purchases.find((p) => {
-      const id = p?.sku || p?.productId || p?.itemId || p?.product || "";
-      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
-    });
+    const hit = caFindUnlockPurchase(purchases);
 
     if (!hit) {
+      setCaUnlocked(false);
+      caClearLocalUnlock();
       setCaUnlockError("No purchase found on this Google account yet.");
       return;
     }
 
-    // If we have a token and acknowledge exists, acknowledge silently (safe)
-    const token = hit?.purchaseToken || hit?.token;
-    if (token && typeof service.acknowledge === "function") {
-      try { await service.acknowledge(token); } catch (_) {}
+    const token = caGetPurchaseToken(hit);
+    if (!token) {
+      throw new Error("missing_purchase_token");
+    }
+
+    const verified = await caVerifyPurchaseWithServer(token);
+
+    if (!verified?.ok || !verified?.entitled) {
+      setCaUnlocked(false);
+      caClearLocalUnlock();
+      setCaUnlockError("Purchase found, but Google Play has not confirmed the unlock yet.");
+      return;
     }
 
     setCaUnlocked(true);
     caStoreUnlockLocally();
     setCaUnlockError("");
   } catch (e) {
-  setCaUnlockError("Restore error: " + String(e?.message || e || "unknown"));
-} finally {
+    setCaUnlockError("Restore error: " + String(e?.message || e || "unknown"));
+  } finally {
     setCaUnlockLoading(false);
   }
 };
