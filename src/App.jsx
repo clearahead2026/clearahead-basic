@@ -7,7 +7,7 @@ import "./App.css";
 // Basic One-Time Unlock (Android Google Play Billing via Digital Goods API)
 // =========================
 const CA_PLAY_BILLING_STORE_ID = "https://play.google.com/billing";
-const CA_PLAY_STORE_APP_URL = "https://play.google.com/store/apps/details?id=app.clearahead.pro";
+const CA_PLAY_STORE_APP_URL = "https://play.google.com/store/apps/details?id=app.clearahead.basic";
 const CA_BASIC_UNLOCK_PRODUCT_ID = "basic_unlock"; // MUST match Play Console product ID exactly
 const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PRODUCT_ID;
 const CA_BASIC_UNLOCK_PURCHASE_OPTION_ID = CA_BASIC_UNLOCK_PRODUCT_ID;
