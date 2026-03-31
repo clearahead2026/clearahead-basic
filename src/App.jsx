@@ -7,12 +7,11 @@ import "./App.css";
 // Basic One-Time Unlock (Android Google Play Billing via Digital Goods API)
 // =========================
 const CA_PLAY_BILLING_STORE_ID = "https://play.google.com/billing";
-const CA_PLAY_STORE_APP_URL = "https://play.google.com/store/apps/details?id=app.clearahead.basic";
+const CA_PLAY_STORE_APP_URL = "https://play.google.com/store/apps/details?id=app.clearahead.pro";
 const CA_BASIC_UNLOCK_PRODUCT_ID = "basic_unlock"; // MUST match Play Console product ID exactly
 const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PRODUCT_ID;
 const CA_BASIC_UNLOCK_PURCHASE_OPTION_ID = CA_BASIC_UNLOCK_PRODUCT_ID;
 const CA_UNLOCK_STORAGE_KEY = "ca_basic_unlocked_v1";
-const CA_VERIFY_ENDPOINT = "/.netlify/functions/play-basic-verify";
 
 function caCanUsePlayBilling() {
   try {
@@ -972,57 +971,6 @@ export default function App() {
     try { localStorage.setItem(CA_UNLOCK_STORAGE_KEY, "1"); } catch { /* ignore */ }
   };
 
-  const caClearLocalUnlock = () => {
-    try { localStorage.removeItem(CA_UNLOCK_STORAGE_KEY); } catch { /* ignore */ }
-  };
-
-  const caGetPurchaseToken = (purchaseLike) => {
-    return (
-      purchaseLike?.purchaseToken ||
-      purchaseLike?.token ||
-      purchaseLike?.purchase_token ||
-      purchaseLike?.details?.purchaseToken ||
-      purchaseLike?.details?.token ||
-      purchaseLike?.details?.purchase_token ||
-      purchaseLike?.details?.paymentMethodData?.token ||
-      purchaseLike?.details?.paymentMethodData?.purchaseToken ||
-      ""
-    );
-  };
-
-  const caFindUnlockPurchase = (purchases) => {
-    if (!Array.isArray(purchases)) return null;
-    return purchases.find((p) => {
-      const id =
-        p?.sku ||
-        p?.productId ||
-        p?.itemId ||
-        p?.product ||
-        p?.id ||
-        "";
-      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
-    }) || null;
-  };
-
-  const caVerifyPurchaseWithServer = async (purchaseToken) => {
-    const res = await fetch(CA_VERIFY_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        purchaseToken,
-        productId: CA_BASIC_UNLOCK_PRODUCT_ID,
-      }),
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      throw new Error(data?.error || "server_verification_failed");
-    }
-
-    return data;
-  };
-
   const caGetPlayBillingService = async () => {
   if (!caBillingEligible) throw new Error("billing_unavailable");
 
@@ -1065,35 +1013,28 @@ export default function App() {
   const caCheckEntitlement = async (service) => {
   try {
     const purchases = await service.listPurchases();
-    const hit = caFindUnlockPurchase(purchases);
 
-    if (!hit) {
-      setCaUnlocked(false);
-      caClearLocalUnlock();
-      return false;
-    }
+    const has = Array.isArray(purchases) && purchases.some((p) => {
+      const id =
+        p?.sku ||
+        p?.productId ||
+        p?.itemId ||
+        p?.product ||
+        p?.id ||
+        "";
 
-    const token = caGetPurchaseToken(hit);
-    if (!token) {
-      setCaUnlocked(false);
-      caClearLocalUnlock();
-      return false;
-    }
+      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
+    });
 
-    const verified = await caVerifyPurchaseWithServer(token);
-
-    if (verified?.ok && verified?.entitled) {
+    if (has) {
       setCaUnlocked(true);
       caStoreUnlockLocally();
       return true;
     }
-
-    setCaUnlocked(false);
-    caClearLocalUnlock();
-    return false;
   } catch {
-    return false;
+    // ignore
   }
+  return false;
 };
   // Show the About screen automatically on the very first launch (after install).
   // After the user closes it once, we remember that choice in localStorage.
@@ -1129,8 +1070,10 @@ export default function App() {
   // - ClearAhead Basic: VITE_CLEARAHEAD_EDITION="basic" (or unset)
   // - ClearAhead Pro:   VITE_CLEARAHEAD_EDITION="pro"
   // No in-app purchases, no restore, no store/billing bridges.
-  const CA_EDITION = (import.meta.env.VITE_CLEARAHEAD_EDITION || import.meta.env.VITE_CLEARAHEAD_PRO || "basic");
+  const CA_EDITION = (import.meta.env.VITE_CLEARAHEAD_EDITION || import.meta.env.VITE_CLEARAHEAD_PRO || "pro");
   const IS_PRO_BUILD = String(CA_EDITION).toLowerCase() === "pro" || String(CA_EDITION).toLowerCase() === "true" || String(CA_EDITION) === "1";
+  const caIsPublicBrowserLockPage =
+    typeof window !== "undefined" && !window.location.pathname.startsWith("/app");
   useEffect(() => {
     // Only Basic uses the unlock. Pro stays separate.
     if (IS_PRO_BUILD) { setCaUnlocked(true); setCaUnlockChecked(true); return; }
@@ -1143,6 +1086,17 @@ export default function App() {
     const init = async () => {
       setCaUnlockError("");
       setCaUnlockChecked(false);
+
+      // Fast path: local cache
+      try {
+        if (localStorage.getItem(CA_UNLOCK_STORAGE_KEY) === "1") {
+          setCaUnlocked(true);
+          setCaUnlockChecked(true);
+          return;
+        }
+      } catch {
+        // ignore
+      }
 
       setCaUnlockLoading(true);
       try {
@@ -1193,10 +1147,11 @@ export default function App() {
     const service = await caGetPlayBillingService();
 
     const methodData = [{
-      supportedMethods: CA_PLAY_BILLING_STORE_ID,
+      supportedMethods: CA_PLAY_BILLING_STORE_ID, // should be "https://play.google.com/billing"
       data: { sku: CA_BASIC_UNLOCK_PRODUCT_ID },
     }];
 
+    // Use a neutral total; Play shows the real price from Console.
     const details = {
       total: {
         label: "ClearAhead Basic Unlock",
@@ -1206,39 +1161,63 @@ export default function App() {
 
     const request = new window.PaymentRequest(methodData, details);
 
+    // Optional but helps some devices fail early instead of “cancelled”
     if (typeof request.canMakePayment === "function") {
       const canPay = await request.canMakePayment();
       if (!canPay) throw new Error("cannot_make_payment");
     }
 
     const response = await request.show();
-    const token = caGetPurchaseToken(response);
+
+    // ---- IMPORTANT: acknowledge purchase token (non-consumable) ----
+    // Token location can vary; try the known spots safely.
+    const token =
+      response?.details?.purchaseToken ||
+      response?.details?.token ||
+      response?.details?.purchase_token ||
+      response?.details?.paymentMethodData?.token ||
+      response?.details?.paymentMethodData?.purchaseToken;
+
+    if (token) {
+      try {
+        // Digital Goods API supports acknowledge in TWA context
+        if (typeof service.acknowledge === "function") {
+          await service.acknowledge(token);
+        }
+      } catch (_) {
+        // ignore ack errors; entitlement check below is the source of truth
+      }
+    }
 
     try { await response.complete("success"); } catch { /* ignore */ }
 
-    if (!token) {
-      throw new Error("missing_purchase_token");
+    // Wait for entitlement to appear
+    let ok = false;
+    for (let i = 0; i < 8; i++) {
+      await new Promise((r) => setTimeout(r, 600));
+      ok = await caCheckEntitlement(service);
+      if (ok) break;
     }
-
-    const verified = await caVerifyPurchaseWithServer(token);
-
-    if (!verified?.ok || !verified?.entitled) {
-      throw new Error(verified?.error || "purchase_not_verified");
-    }
+    if (!ok) throw new Error("no_entitlement");
 
     setCaUnlocked(true);
     caStoreUnlockLocally();
-    setCaUnlockError("");
+
   } catch (e) {
     const msg = String(e?.message || e || "").toLowerCase();
 
     if (msg.includes("already") || msg.includes("owned")) {
       try {
-        await caHandleRestoreUnlock();
-        return;
-      } catch (_) {
-        // ignore and fall through to user-facing error below
-      }
+        const service2 = await caGetPlayBillingService();
+        await new Promise((r) => setTimeout(r, 400));
+        const ok = await caCheckEntitlement(service2);
+        if (ok) {
+          setCaUnlocked(true);
+          caStoreUnlockLocally();
+          setCaUnlockError("");
+          return;
+        }
+      } catch (_) {}
     }
 
     setCaUnlockError("Billing error: " + String(e?.message || e || "unknown"));
@@ -1253,36 +1232,31 @@ export default function App() {
 
   try {
     const service = await caGetPlayBillingService();
+
+    // Pull purchases directly and match by product id safely
     const purchases = (await service.listPurchases?.()) || [];
-    const hit = caFindUnlockPurchase(purchases);
+    const hit = purchases.find((p) => {
+      const id = p?.sku || p?.productId || p?.itemId || p?.product || "";
+      return id === CA_BASIC_UNLOCK_PRODUCT_ID || id === CA_BASIC_UNLOCK_PURCHASE_OPTION_ID;
+    });
 
     if (!hit) {
-      setCaUnlocked(false);
-      caClearLocalUnlock();
       setCaUnlockError("No purchase found on this Google account yet.");
       return;
     }
 
-    const token = caGetPurchaseToken(hit);
-    if (!token) {
-      throw new Error("missing_purchase_token");
-    }
-
-    const verified = await caVerifyPurchaseWithServer(token);
-
-    if (!verified?.ok || !verified?.entitled) {
-      setCaUnlocked(false);
-      caClearLocalUnlock();
-      setCaUnlockError("Purchase found, but Google Play has not confirmed the unlock yet.");
-      return;
+    // If we have a token and acknowledge exists, acknowledge silently (safe)
+    const token = hit?.purchaseToken || hit?.token;
+    if (token && typeof service.acknowledge === "function") {
+      try { await service.acknowledge(token); } catch (_) {}
     }
 
     setCaUnlocked(true);
     caStoreUnlockLocally();
     setCaUnlockError("");
   } catch (e) {
-    setCaUnlockError("Restore error: " + String(e?.message || e || "unknown"));
-  } finally {
+  setCaUnlockError("Restore error: " + String(e?.message || e || "unknown"));
+} finally {
     setCaUnlockLoading(false);
   }
 };
@@ -1378,7 +1352,7 @@ async function handleShare() {
   function handleLeaveReview() {
     try {
       setShowMainMenu(false);
-      const reviewUrl = "https://play.google.com/store/apps/details?id=app.clearahead.basic&showAllReviews=true";
+      const reviewUrl = "https://play.google.com/store/apps/details?id=app.clearahead.pro&showAllReviews=true";
       window.open(reviewUrl, "_blank", "noopener,noreferrer");
     } catch (e) {
       // ignore
@@ -2581,7 +2555,6 @@ const labelStyle = {
       { n: 3, label: "Fixed bills" },
     ];
 
-    if (isPro) gridItems.push({ n: 6, label: "Calendar", full: true });
 
     return (
       <div
@@ -2631,7 +2604,8 @@ const labelStyle = {
         {steps
           .filter((s) => {
             if (s.label === "Extras" || s.label === "Home") return false;
-            if ((activeStep === 4 || activeStep === 5) && s.label === "Review") return false;
+            if ((activeStep === 4 || activeStep === 5 || activeStep === 6) && s.label === "Review") return false;
+            if (activeStep === 6 && s.label === "Calendar") return false;
             return true;
           })
           .map((s) => {
@@ -2661,6 +2635,14 @@ const labelStyle = {
 }
 
 
+
+  if (caIsPublicBrowserLockPage) {
+    return (
+      <div className="appShell">
+        <CABasicStoreLockPage />
+      </div>
+    );
+  }
 
   return (
     <div className="appShell">
@@ -2758,7 +2740,7 @@ const labelStyle = {
                 <div
                   style={{
                     position: isNarrowMobile ? "fixed" : "absolute",
-                    top: isNarrowMobile ? "calc(env(safe-area-inset-top, 0px) + 132px)" : 54,
+                    top: isNarrowMobile ? 110 : 54,
                     right: isNarrowMobile ? 16 : 0,
                     left: isNarrowMobile ? 16 : "auto",
                     width: isNarrowMobile ? "auto" : 220,
@@ -2768,8 +2750,7 @@ const labelStyle = {
                     background: "linear-gradient(180deg, rgba(16,26,58,0.98) 0%, rgba(11,16,38,0.98) 100%)",
                     boxShadow: "0 20px 44px rgba(0,0,0,0.35)",
                     padding: 10,
-                    boxSizing: "border-box",
-                    zIndex: 9999,
+                    zIndex: 30,
                   }}
                 >
                   <div style={{ fontSize: 11, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65, padding: "4px 8px 8px" }}>
@@ -3007,6 +2988,24 @@ const labelStyle = {
                     Review
                   </button>
                 </div>
+
+                <button
+                  className="caBtnPurple"
+                  onClick={() => goTo(6)}
+                  style={{
+                    marginTop: 8,
+                    padding: 10,
+                    borderRadius: 12,
+                    border: "1px solid rgba(168,85,247,0.45)",
+                    color: "white",
+                    width: "100%",
+                    boxSizing: "border-box",
+                    cursor: "pointer",
+                    fontWeight: 800,
+                  }}
+                >
+                  Pro calendar
+                </button>
 
                 <div style={{ fontSize: 12, opacity: 0.65 }}>v1.20</div>
               </div>
@@ -4869,17 +4868,37 @@ const labelStyle = {
 
 
     <button
-      className="caBtn caBtnPrimary"
+      className="caBtnPurple"
       onClick={() => setStep(5)}
-      style={{ marginTop: 14, display: "block" }}
+      style={{
+        marginTop: 14,
+        display: "block",
+        width: "100%",
+        padding: 12,
+        borderRadius: 12,
+        border: "1px solid rgba(168,85,247,0.45)",
+        color: "white",
+        cursor: "pointer",
+        fontWeight: 800,
+      }}
     >
       Continue to Review
     </button>
 
     <button
-      className="caBtn caBtnGhost"
+      className="caBtnPurple"
       onClick={() => setStep(3)}
-      style={{ marginTop: 10, display: "block" }}
+      style={{
+        marginTop: 10,
+        display: "block",
+        width: "100%",
+        padding: 12,
+        borderRadius: 12,
+        border: "1px solid rgba(168,85,247,0.45)",
+        color: "white",
+        cursor: "pointer",
+        fontWeight: 800,
+      }}
     >
       Back
     </button>
@@ -5117,7 +5136,7 @@ const labelStyle = {
               : cardStyle
           }
         >
-          <h2 style={{ marginTop: 0 }}>Calendar</h2>
+          <h2 style={{ marginTop: 0 }}>Pro calendar</h2>
 
           {renderStepper(6)}
 
@@ -5734,8 +5753,35 @@ return (
   })()}
 </div>
 
-<div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-            <button className="caBtn caBtnPrimary" onClick={() => goTo(5)}>
+<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 14, width: "100%" }}>
+            <button
+              className="caBtnPurple"
+              onClick={() => { setHomeView("overview"); goTo(1); }}
+              style={{
+                width: "100%",
+                padding: 12,
+                borderRadius: 12,
+                border: "1px solid rgba(168,85,247,0.45)",
+                color: "white",
+                cursor: "pointer",
+                fontWeight: 800,
+              }}
+            >
+              Back to Overview
+            </button>
+            <button
+              className="caBtnPurple"
+              onClick={() => goTo(5)}
+              style={{
+                width: "100%",
+                padding: 12,
+                borderRadius: 12,
+                border: "1px solid rgba(168,85,247,0.45)",
+                color: "white",
+                cursor: "pointer",
+                fontWeight: 800,
+              }}
+            >
               Back to Review
             </button>
           </div>
