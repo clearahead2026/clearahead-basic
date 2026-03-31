@@ -7,7 +7,7 @@ import "./App.css";
 // Basic One-Time Unlock (Android Google Play Billing via Digital Goods API)
 // =========================
 const CA_PLAY_BILLING_STORE_ID = "https://play.google.com/billing";
-const CA_PLAY_STORE_APP_URL = "https://play.google.com/store/apps/details?id=app.clearahead.pro";
+const CA_PLAY_STORE_APP_URL = "https://play.google.com/store/apps/details?id=app.clearahead.basic";
 const CA_BASIC_UNLOCK_PRODUCT_ID = "basic_unlock"; // MUST match Play Console product ID exactly
 const CA_BASIC_UNLOCK_SKU = CA_BASIC_UNLOCK_PRODUCT_ID;
 const CA_BASIC_UNLOCK_PURCHASE_OPTION_ID = CA_BASIC_UNLOCK_PRODUCT_ID;
@@ -131,6 +131,129 @@ function CABasicUnlockOverlay({
       </div>
     </div>
   );
+
+
+function CABasicStoreLockPage() {
+  const pageWrap = {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    background:
+      "radial-gradient(circle at top, rgba(124,58,237,0.22) 0%, rgba(11,18,32,1) 48%, rgba(2,6,23,1) 100%)",
+    color: "rgba(241,245,249,0.95)",
+    textAlign: "center",
+  };
+
+  const card = {
+    width: "100%",
+    maxWidth: 640,
+    borderRadius: 24,
+    border: "1px solid rgba(255,255,255,0.12)",
+    background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%)",
+    boxShadow: "0 30px 80px rgba(0,0,0,0.45)",
+    padding: 28,
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
+  };
+
+  const buttonBase = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    minHeight: 48,
+    padding: "12px 16px",
+    borderRadius: 14,
+    fontWeight: 900,
+    textDecoration: "none",
+    cursor: "pointer",
+    boxSizing: "border-box",
+  };
+
+  return (
+    <div style={pageWrap}>
+      <div style={card}>
+        <div
+          style={{
+            fontSize: 52,
+            fontWeight: 900,
+            lineHeight: 1,
+            color: "#a855f7",
+            textShadow:
+              "0 0 6px rgba(255,255,255,0.55), 0 0 14px rgba(255,255,255,0.35), 0 0 26px rgba(255,255,255,0.18)",
+          }}
+        >
+          ClearAhead
+        </div>
+
+        <div style={{ marginTop: 4, fontSize: 22, fontWeight: 900 }}>Basic</div>
+
+        <p style={{ marginTop: 18, marginBottom: 0, fontSize: 16, lineHeight: 1.6, opacity: 0.92 }}>
+          The web version is locked.
+          <br />
+          ClearAhead Basic is available through the official app stores.
+        </p>
+
+        <div
+          style={{
+            marginTop: 20,
+            padding: 16,
+            borderRadius: 18,
+            background: "rgba(0,0,0,0.22)",
+            border: "1px solid rgba(255,255,255,0.10)",
+            textAlign: "left",
+          }}
+        >
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>What you get</div>
+          <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.6, opacity: 0.92 }}>
+            <li>One-time purchase</li>
+            <li>No ads</li>
+            <li>No subscriptions</li>
+            <li>Calm financial clarity on your device</li>
+          </ul>
+        </div>
+
+        <div style={{ display: "grid", gap: 12, marginTop: 20 }}>
+          <a
+            href={CA_PLAY_STORE_APP_URL}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              ...buttonBase,
+              border: "1px solid rgba(168,85,247,0.45)",
+              background: "linear-gradient(135deg, rgba(168,85,247,0.98), rgba(124,58,237,0.98))",
+              color: "white",
+              boxShadow: "0 12px 28px rgba(124,58,237,0.28)",
+            }}
+          >
+            Download on Google Play
+          </a>
+
+          <button
+            type="button"
+            onClick={() => window.location.assign("/app")}
+            style={{
+              ...buttonBase,
+              border: "1px solid rgba(94,234,212,0.38)",
+              background: "linear-gradient(135deg, rgba(45,212,191,0.96), rgba(13,148,136,0.96))",
+              color: "white",
+              boxShadow: "0 12px 28px rgba(13,148,136,0.24)",
+            }}
+          >
+            Continue to app path
+          </button>
+        </div>
+
+        <div style={{ marginTop: 14, fontSize: 12, opacity: 0.72 }}>
+          Installed app users should open ClearAhead through the store-installed app, not this browser page.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 }
 
 // ---------- Locale currency formatting (global-ready) ----------
@@ -1070,10 +1193,8 @@ export default function App() {
   // - ClearAhead Basic: VITE_CLEARAHEAD_EDITION="basic" (or unset)
   // - ClearAhead Pro:   VITE_CLEARAHEAD_EDITION="pro"
   // No in-app purchases, no restore, no store/billing bridges.
-  const CA_EDITION = (import.meta.env.VITE_CLEARAHEAD_EDITION || import.meta.env.VITE_CLEARAHEAD_PRO || "pro");
+  const CA_EDITION = (import.meta.env.VITE_CLEARAHEAD_EDITION || import.meta.env.VITE_CLEARAHEAD_PRO || "basic");
   const IS_PRO_BUILD = String(CA_EDITION).toLowerCase() === "pro" || String(CA_EDITION).toLowerCase() === "true" || String(CA_EDITION) === "1";
-  const caIsPublicBrowserLockPage =
-    typeof window !== "undefined" && !window.location.pathname.startsWith("/app");
   useEffect(() => {
     // Only Basic uses the unlock. Pro stays separate.
     if (IS_PRO_BUILD) { setCaUnlocked(true); setCaUnlockChecked(true); return; }
@@ -1352,7 +1473,7 @@ async function handleShare() {
   function handleLeaveReview() {
     try {
       setShowMainMenu(false);
-      const reviewUrl = "https://play.google.com/store/apps/details?id=app.clearahead.pro&showAllReviews=true";
+      const reviewUrl = "https://play.google.com/store/apps/details?id=app.clearahead.basic&showAllReviews=true";
       window.open(reviewUrl, "_blank", "noopener,noreferrer");
     } catch (e) {
       // ignore
@@ -2555,6 +2676,7 @@ const labelStyle = {
       { n: 3, label: "Fixed bills" },
     ];
 
+    if (isPro) gridItems.push({ n: 6, label: "Calendar", full: true });
 
     return (
       <div
@@ -2604,8 +2726,7 @@ const labelStyle = {
         {steps
           .filter((s) => {
             if (s.label === "Extras" || s.label === "Home") return false;
-            if ((activeStep === 4 || activeStep === 5 || activeStep === 6) && s.label === "Review") return false;
-            if (activeStep === 6 && s.label === "Calendar") return false;
+            if ((activeStep === 4 || activeStep === 5) && s.label === "Review") return false;
             return true;
           })
           .map((s) => {
@@ -2635,14 +2756,6 @@ const labelStyle = {
 }
 
 
-
-  if (caIsPublicBrowserLockPage) {
-    return (
-      <div className="appShell">
-        <CABasicStoreLockPage />
-      </div>
-    );
-  }
 
   return (
     <div className="appShell">
@@ -2740,7 +2853,7 @@ const labelStyle = {
                 <div
                   style={{
                     position: isNarrowMobile ? "fixed" : "absolute",
-                    top: isNarrowMobile ? 110 : 54,
+                    top: isNarrowMobile ? "calc(env(safe-area-inset-top, 0px) + 132px)" : 54,
                     right: isNarrowMobile ? 16 : 0,
                     left: isNarrowMobile ? 16 : "auto",
                     width: isNarrowMobile ? "auto" : 220,
@@ -2750,7 +2863,8 @@ const labelStyle = {
                     background: "linear-gradient(180deg, rgba(16,26,58,0.98) 0%, rgba(11,16,38,0.98) 100%)",
                     boxShadow: "0 20px 44px rgba(0,0,0,0.35)",
                     padding: 10,
-                    zIndex: 30,
+                    boxSizing: "border-box",
+                    zIndex: 9999,
                   }}
                 >
                   <div style={{ fontSize: 11, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65, padding: "4px 8px 8px" }}>
@@ -2988,24 +3102,6 @@ const labelStyle = {
                     Review
                   </button>
                 </div>
-
-                <button
-                  className="caBtnPurple"
-                  onClick={() => goTo(6)}
-                  style={{
-                    marginTop: 8,
-                    padding: 10,
-                    borderRadius: 12,
-                    border: "1px solid rgba(168,85,247,0.45)",
-                    color: "white",
-                    width: "100%",
-                    boxSizing: "border-box",
-                    cursor: "pointer",
-                    fontWeight: 800,
-                  }}
-                >
-                  Pro calendar
-                </button>
 
                 <div style={{ fontSize: 12, opacity: 0.65 }}>v1.20</div>
               </div>
@@ -4868,37 +4964,17 @@ const labelStyle = {
 
 
     <button
-      className="caBtnPurple"
+      className="caBtn caBtnPrimary"
       onClick={() => setStep(5)}
-      style={{
-        marginTop: 14,
-        display: "block",
-        width: "100%",
-        padding: 12,
-        borderRadius: 12,
-        border: "1px solid rgba(168,85,247,0.45)",
-        color: "white",
-        cursor: "pointer",
-        fontWeight: 800,
-      }}
+      style={{ marginTop: 14, display: "block" }}
     >
       Continue to Review
     </button>
 
     <button
-      className="caBtnPurple"
+      className="caBtn caBtnGhost"
       onClick={() => setStep(3)}
-      style={{
-        marginTop: 10,
-        display: "block",
-        width: "100%",
-        padding: 12,
-        borderRadius: 12,
-        border: "1px solid rgba(168,85,247,0.45)",
-        color: "white",
-        cursor: "pointer",
-        fontWeight: 800,
-      }}
+      style={{ marginTop: 10, display: "block" }}
     >
       Back
     </button>
@@ -5136,7 +5212,7 @@ const labelStyle = {
               : cardStyle
           }
         >
-          <h2 style={{ marginTop: 0 }}>Pro calendar</h2>
+          <h2 style={{ marginTop: 0 }}>Calendar</h2>
 
           {renderStepper(6)}
 
@@ -5753,35 +5829,8 @@ return (
   })()}
 </div>
 
-<div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 14, width: "100%" }}>
-            <button
-              className="caBtnPurple"
-              onClick={() => { setHomeView("overview"); goTo(1); }}
-              style={{
-                width: "100%",
-                padding: 12,
-                borderRadius: 12,
-                border: "1px solid rgba(168,85,247,0.45)",
-                color: "white",
-                cursor: "pointer",
-                fontWeight: 800,
-              }}
-            >
-              Back to Overview
-            </button>
-            <button
-              className="caBtnPurple"
-              onClick={() => goTo(5)}
-              style={{
-                width: "100%",
-                padding: 12,
-                borderRadius: 12,
-                border: "1px solid rgba(168,85,247,0.45)",
-                color: "white",
-                cursor: "pointer",
-                fontWeight: 800,
-              }}
-            >
+<div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+            <button className="caBtn caBtnPrimary" onClick={() => goTo(5)}>
               Back to Review
             </button>
           </div>
