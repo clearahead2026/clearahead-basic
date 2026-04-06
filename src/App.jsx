@@ -1506,16 +1506,30 @@ async function handleShare() {
   }
 
   function clearAllData() {
-    setShowResetConfirm(true);
-    return;
+  setShowMainMenu(false);
+  setShowResetConfirm(true);
+}
 
-    try {
-      localStorage.clear();
-    } catch (e) {
-      // ignore
-    }
+function confirmClearAllData() {
+  try {
+    localStorage.clear();
+  } catch (e) {
+    // ignore
+  }
+
+  setShowResetConfirm(false);
+  setShowMainMenu(false);
+  setHomeView("setup");
+  setStep(1);
+
+  try {
+    window.location.replace("#step-1");
+  } catch {
     window.location.reload();
   }
+
+  window.location.reload();
+}
 
   function goTo(nextStep) {
   setNavFrom(nextStep > step ? "forward" : "back");
@@ -2811,11 +2825,13 @@ const labelStyle = {
         .caModalOverlay { overflow-y: auto !important; -webkit-overflow-scrolling: touch; align-items: flex-start !important; }
         .caModalCard { max-height: calc(100vh - 32px) !important; overflow-y: auto !important; }
         .appShell button.caBtnPurple {
-          border: 1px solid rgba(168,85,247,0.45) !important;
-          background: linear-gradient(135deg, rgba(168,85,247,0.98), rgba(124,58,237,0.98)) !important;
-          color: white !important;
-          box-shadow: 0 12px 28px rgba(124,58,237,0.30) !important;
-        }
+  border: 1px solid rgba(196,181,253,0.32) !important;
+  background: linear-gradient(135deg, rgba(107,70,193,0.96), rgba(91,44,155,0.96)) !important;
+  color: rgba(255,255,255,0.98) !important;
+  box-shadow: 0 8px 18px rgba(91,44,155,0.18) !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
         .appShell button.caBtnTeal {
           border: 1px solid rgba(94,234,212,0.42) !important;
           background: linear-gradient(135deg, rgba(45,212,191,0.96), rgba(13,148,136,0.96)) !important;
@@ -3361,15 +3377,13 @@ const labelStyle = {
   />
   {incomeSection === "wage" && (
     <div style={{ marginBottom: 14 }}>
+
 {/* Wage / Salary (multi jobs: add / edit / remove) */}
 {(() => {
   const wageJobs = incomes.filter((x) => x.type === "wage_job");
   const hasJobs = wageJobs.length > 0;
 
-  const checkboxChecked = hasJobs ? true : wageAddOpen;
-
   const addJob = () => {
-    // Validate minimal requirements (match other income rules)
     if (moneyNumberOrNull(wageDraft.amount) === null) return;
     if (!wageDraft.frequency) return;
     if (!isValidISODate(wageDraft.nextDate)) return;
@@ -3389,7 +3403,6 @@ const labelStyle = {
       },
     ]);
 
-    // Clear + close (calm UX like other add flows)
     setWageDraft({
       label: "Wage / Salary",
       amount: "",
@@ -3406,22 +3419,8 @@ const labelStyle = {
 
   return (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <input
-          type="checkbox"
-          checked={checkboxChecked}
-          disabled={hasJobs}
-          onChange={(e) => {
-            // This checkbox is only used to START the first job entry.
-            // Once jobs exist, we keep it checked (calm + predictable) and use Remove per job.
-            const next = e.target.checked;
-            if (!hasJobs) setWageAddOpen(next);
-          }}
-        />
-        <div style={{ fontWeight: 900 }}>Wage / Salary</div>
-      </label>
+      <div style={{ fontWeight: 900 }}>Wage / Salary</div>
 
-      {/* Saved jobs (closed view) */}
       {hasJobs && (
         <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
           {wageJobs.map((job) => {
@@ -3554,8 +3553,7 @@ const labelStyle = {
         </div>
       )}
 
-      {/* Add job form (opens, then closes after Add) */}
-      {wageAddOpen && (
+      {(wageAddOpen || !hasJobs) && (
         <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
           <div>
             <div style={labelStyle}>Job label</div>
@@ -3610,29 +3608,24 @@ const labelStyle = {
               Add
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setWageAddOpen(false);
-                setWageDraft({
-                  label: "Wage / Salary",
-                  amount: "",
-                  frequency: "monthly",
-                  nextDate: todayISO(),
-                });
-              }}
-              className="caBtn caBtnGhost"
-            >
-              Done
-            </button>
+            {hasJobs && (
+              <button
+                type="button"
+                onClick={() => {
+                  setWageAddOpen(false);
+                  setWageDraft({
+                    label: "Wage / Salary",
+                    amount: "",
+                    frequency: "monthly",
+                    nextDate: todayISO(),
+                  });
+                }}
+                className="caBtn caBtnGhost"
+              >
+                Done
+              </button>
+            )}
           </div>
-        </div>
-      )}
-
-      {/* If no jobs and add form is closed, show a calm helper line */}
-      {!hasJobs && !wageAddOpen && (
-        <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
-          Tick Wage / Salary to add your first job.
         </div>
       )}
     </div>
@@ -3696,45 +3689,69 @@ const labelStyle = {
     setIncomeSection={setIncomeSection}
     setActiveIncomeId={setActiveIncomeId}
   />
-  {incomeSection === "other" && (
-    <div style={{ marginBottom: 14, display: "grid", gap: 10 }}>
-      <button
-        type="button"
-        onClick={addOtherIncome}
-        style={{
-          width: "100%",
-          padding: 12,
-          borderRadius: 12,
-          border: "1px solid rgba(255,255,255,0.14)",
-          background: "rgba(0,0,0,0.18)",
-          color: "rgba(241,245,249,0.95)",
-          fontWeight: 800,
-          cursor: "pointer",
-        }}
-      >
-        + Add other income
-      </button>
+  {incomeSection === "other" && (() => {
+  const otherItems = incomes.filter((x) => (x.id || "").startsWith("other_income_"));
+  const hasOther = otherItems.length > 0;
 
-      {incomes
-        .filter((x) => (x.id || "").startsWith("other_income_"))
-        .map((it) => (
-          <IncomeItemDetails
-            key={it.id}
-            income={it}
-            allowRemove={true}
-            updateIncome={updateIncome}
-            removeOtherIncome={removeOtherIncome}
-            freqOptions={freqOptions}
-            inputStyle={inputStyle}
-            subLabel={subLabel}
-            selectStyle={selectStyle}
-            rowBox={rowBox}
-            activeIncomeId={activeIncomeId}
-            setActiveIncomeId={setActiveIncomeId}
-          />
-        ))}
+  return (
+    <div style={{ marginBottom: 14, display: "grid", gap: 10 }}>
+      {!hasOther && (
+        <button
+          type="button"
+          onClick={addOtherIncome}
+          style={{
+            width: "100%",
+            padding: 12,
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.14)",
+            background: "rgba(0,0,0,0.18)",
+            color: "rgba(241,245,249,0.95)",
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          Add other income
+        </button>
+      )}
+
+      {otherItems.map((it) => (
+        <IncomeItemDetails
+          key={it.id}
+          income={it}
+          allowRemove={true}
+          updateIncome={updateIncome}
+          removeOtherIncome={removeOtherIncome}
+          freqOptions={freqOptions}
+          inputStyle={inputStyle}
+          subLabel={subLabel}
+          selectStyle={selectStyle}
+          rowBox={rowBox}
+          activeIncomeId={activeIncomeId}
+          setActiveIncomeId={setActiveIncomeId}
+        />
+      ))}
+
+      {hasOther && (
+        <button
+          type="button"
+          onClick={addOtherIncome}
+          style={{
+            width: "100%",
+            padding: 12,
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.14)",
+            background: "rgba(0,0,0,0.18)",
+            color: "rgba(241,245,249,0.95)",
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          + Add another other income
+        </button>
+      )}
     </div>
-  )}
+  );
+})()}
 </div>
 
 
