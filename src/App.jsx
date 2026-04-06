@@ -3695,60 +3695,146 @@ const labelStyle = {
 
   return (
     <div style={{ marginBottom: 14, display: "grid", gap: 10 }}>
-      {!hasOther && (
-        <button
-          type="button"
-          onClick={addOtherIncome}
-          style={{
-            width: "100%",
-            padding: 12,
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.14)",
-            background: "rgba(0,0,0,0.18)",
-            color: "rgba(241,245,249,0.95)",
-            fontWeight: 800,
-            cursor: "pointer",
-          }}
-        >
-          Add other income
-        </button>
-      )}
+      {otherItems.map((it) => {
+        const isEditing = activeIncomeId === it.id;
+        const hasDetails =
+          moneyNumberOrNull(it.amount) !== null &&
+          !!it.frequency &&
+          isValidISODate(it.nextDate);
 
-      {otherItems.map((it) => (
-        <IncomeItemDetails
-          key={it.id}
-          income={it}
-          allowRemove={true}
-          updateIncome={updateIncome}
-          removeOtherIncome={removeOtherIncome}
-          freqOptions={freqOptions}
-          inputStyle={inputStyle}
-          subLabel={subLabel}
-          selectStyle={selectStyle}
-          rowBox={rowBox}
-          activeIncomeId={activeIncomeId}
-          setActiveIncomeId={setActiveIncomeId}
-        />
-      ))}
+        return (
+          <div key={it.id} style={rowBox}>
+            {!isEditing ? (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ minWidth: 0, flex: "1 1 220px" }}>
+                  <div style={{ fontWeight: 900 }}>{it.label || "Other income"}</div>
+                  {hasDetails ? (
+                    <div style={{ opacity: 0.75, fontSize: 12, marginTop: 4 }}>
+                      {formatMoney(it.amount || "—")} • {prettyFrequency(it.frequency)} • {displayUKDate(it.nextDate)}
+                    </div>
+                  ) : (
+                    <div style={{ opacity: 0.75, fontSize: 12, marginTop: 4 }}>
+                      Add details
+                    </div>
+                  )}
+                </div>
 
-      {hasOther && (
-        <button
-          type="button"
-          onClick={addOtherIncome}
-          style={{
-            width: "100%",
-            padding: 12,
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.14)",
-            background: "rgba(0,0,0,0.18)",
-            color: "rgba(241,245,249,0.95)",
-            fontWeight: 800,
-            cursor: "pointer",
-          }}
-        >
-          + Add another other income
-        </button>
-      )}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveIncomeId(it.id)}
+                    className="caBtn caBtnGhost"
+                  >
+                    {hasDetails ? "Edit" : "Add"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => removeOtherIncome(it.id)}
+                    className="caBtn caBtnGhost"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 10 }}>
+                <div>
+                  <div style={subLabel}>Label</div>
+                  <input
+                    value={it.label || ""}
+                    onChange={(e) => updateIncome(it.id, { label: e.target.value })}
+                    placeholder="e.g. Child maintenance"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <div style={subLabel}>Amount ({caCurrencySymbol})</div>
+                  <input
+                    value={it.amount}
+                    onChange={(e) => updateIncome(it.id, { amount: sanitizeMoneyInput(e.target.value) })}
+                    inputMode="decimal"
+                    pattern="[0-9]*"
+                    placeholder="e.g. 343.20"
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div>
+                  <div style={subLabel}>Frequency</div>
+                  <select
+                    value={it.frequency}
+                    onChange={(e) => updateIncome(it.id, { frequency: e.target.value })}
+                    style={selectStyle}
+                  >
+                    <option value="">Select…</option>
+                    {freqOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <div style={subLabel}>Next payment date</div>
+                  <input
+                    type="date"
+                    value={it.nextDate}
+                    onChange={(e) => updateIncome(it.id, { nextDate: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveIncomeId(null)}
+                    className="caBtn caBtnPrimary"
+                  >
+                    Add income
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => removeOtherIncome(it.id)}
+                    className="caBtn caBtnGhost"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      <button
+        type="button"
+        onClick={() => {
+          addOtherIncome();
+          const nextNum =
+            incomes
+              .filter((x) => (x.id || "").startsWith("other_income_"))
+              .map((x) => parseInt(String(x.id).replace("other_income_", ""), 10))
+              .filter((n) => Number.isFinite(n))
+              .reduce((a, b) => Math.max(a, b), 1) + 1;
+          setActiveIncomeId(`other_income_${nextNum}`);
+        }}
+        style={{
+          width: "100%",
+          padding: 12,
+          borderRadius: 12,
+          border: "1px solid rgba(255,255,255,0.14)",
+          background: "rgba(0,0,0,0.18)",
+          color: "rgba(241,245,249,0.95)",
+          fontWeight: 800,
+          cursor: "pointer",
+        }}
+      >
+        {hasOther ? "+ Add another other income" : "Add other income"}
+      </button>
     </div>
   );
 })()}
