@@ -3236,87 +3236,111 @@ const labelStyle = {
                 </div>
               </div>
 
-              <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.10)", background: "rgba(0,0,0,0.12)", width: "100%", boxSizing: "border-box" }}>
-                <div style={{ fontSize: 12, opacity: 0.8 }}>Window</div>
-                <div style={{ fontWeight: 800 }}>
-                  {displayUKDate(startDate)} → {displayUKDate(lookahead.windowEndISO)}
-                </div>
+              <div style={{ display: "grid", gap: 12, marginTop: 10 }}>
+  <div
+    style={{
+      padding: 12,
+      borderRadius: 12,
+      border: "1px solid rgba(255,255,255,0.10)",
+      background: "rgba(0,0,0,0.12)",
+      width: "100%",
+      boxSizing: "border-box",
+    }}
+  >
+    <div style={{ fontSize: 12, opacity: 0.8 }}>Window</div>
+    <div style={{ fontWeight: 800 }}>
+      {displayUKDate(startDate)} → {displayUKDate(lookahead.windowEndISO)}
+    </div>
 
-                <div
-                  style={{
-                    marginTop: 14,
-                    fontSize: 12,
-                    letterSpacing: 0.3,
-                    textTransform: "uppercase",
-                    opacity: 0.65,
-                  }}
-                >
-                  Available now
-                </div>
+    <div
+      style={{
+        marginTop: 14,
+        fontSize: 12,
+        letterSpacing: 0.3,
+        textTransform: "uppercase",
+        opacity: 0.65,
+      }}
+    >
+      Available now
+    </div>
 
-                <div
-                  style={{
-                    fontSize: 40,
-                    fontWeight: 900,
-                    letterSpacing: -0.8,
-                    marginTop: 2,
-                    color: "rgba(241,245,249,0.98)",
-                  }}
-                >
-                  {formatMoney(lookahead.mayBeAvailable.toFixed(2))}
-                </div>
+    <div
+      style={{
+        fontSize: 40,
+        fontWeight: 900,
+        letterSpacing: -0.8,
+        marginTop: 2,
+        color: "rgba(241,245,249,0.98)",
+      }}
+    >
+      {formatMoney(lookahead.mayBeAvailable.toFixed(2))}
+    </div>
 
-                <div style={{ marginTop: 10, fontSize: 12, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65 }}>
-                  Safe number
-                </div>
-                <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.6, marginTop: 2, color: "rgba(241,245,249,0.98)" }}>
-                  {formatMoney(Math.max(0, lookahead.mayBeAvailable - 250).toFixed(2))}
-                </div>
-                {lookahead.mayBeAvailable > 0 && lookahead.mayBeAvailable - 250 <= 0 && (
-                  <div style={{ marginTop: 8, fontSize: 12, opacity: 0.88, lineHeight: 1.35 }}>
-                    <div style={{ fontWeight: 800 }}>You still have Available now to use.</div>
-                    <div>Safe to spend is £0 because ClearAhead is holding back a little for safety.</div>
-                  </div>
-                )}
-                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
-                  Safe number is a cautious guide — it leaves a small {formatMoney(250)} buffer aside for surprises.
-                </div>
-                <div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
-                  Available now is your projected amount across the next {effectiveLookaheadWeeks} weeks, before the safety buffer.
-                </div>
+    <div style={{ marginTop: 10, fontSize: 12, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65 }}>
+      Safe number
+    </div>
+    <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.6, marginTop: 2, color: "rgba(241,245,249,0.98)" }}>
+      {formatMoney(Math.max(0, lookahead.mayBeAvailable - 250).toFixed(2))}
+    </div>
 
-                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Lowest projected balance in next {effectiveLookaheadWeeks} weeks</div>
-                <div style={{ fontWeight: 800 }}>
-                  {formatMoney(lookahead.lowest.toFixed(2))} on {displayUKDate(lookahead.lowestISO)}
-                </div>
+    {lookahead.mayBeAvailable > 0 && lookahead.mayBeAvailable - 250 <= 0 && (
+      <div style={{ marginTop: 8, fontSize: 12, opacity: 0.88, lineHeight: 1.35 }}>
+        <div style={{ fontWeight: 800 }}>You still have Available now to use.</div>
+        <div>Safe to spend is £0 because ClearAhead is holding back a little for safety.</div>
+      </div>
+    )}
 
-                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Confidence</div>
-                <div style={{ fontWeight: 800 }}>{lookahead.confidence}</div>
+    <div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
+      Safe number is a cautious guide — it leaves a small {formatMoney(250)} buffer aside for surprises.
+    </div>
+    <div style={{ marginTop: 6, fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
+      Available now is your projected amount across the next {effectiveLookaheadWeeks} weeks, before the safety buffer.
+    </div>
+  </div>
 
-                <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>
-                  Why this confidence:
-                  <ul style={{ marginTop: 6, marginBottom: 0, paddingLeft: 18 }}>
-                    {lookahead.reasons.map((r, i) => (
-                      <li key={i} style={{ marginBottom: 4 }}>
-                        {r}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+  <div
+    style={{
+      padding: 12,
+      borderRadius: 12,
+      border: "1px solid rgba(255,255,255,0.10)",
+      background: "rgba(0,0,0,0.12)",
+      width: "100%",
+      boxSizing: "border-box",
+    }}
+  >
+    <div style={{ fontSize: 12, opacity: 0.8 }}>Lowest projected balance in next {effectiveLookaheadWeeks} weeks</div>
+    <div style={{ fontWeight: 800 }}>
+      {formatMoney(lookahead.lowest.toFixed(2))} on {displayUKDate(lookahead.lowestISO)}
+    </div>
 
-                <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
-                  Gentle nudge: If possible, keeping a small buffer can help with surprises (repairs, school costs) and future plans.
-                </div>
+    <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Confidence</div>
+    <div style={{ fontWeight: 800 }}>{lookahead.confidence}</div>
 
-                {lookahead.lowest < 0 && (
-                  <div style={{ marginTop: 12, padding: 10, borderRadius: 12, border: "1px solid rgba(255,170,0,0.35)", background: "rgba(255,170,0,0.10)" }}>
-                    <div style={{ fontWeight: 900 }}>⚠️ Tight period detected</div>
-                    <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6 }}>
-                      Based on what’s entered (including spending + goals if included), the projection dips below {formatMoney(0)} at least once in the next {effectiveLookaheadWeeks} weeks.
-                    </div>
-                  </div>
-                )}
-              </div>
+    <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>
+      Why this confidence:
+      <ul style={{ marginTop: 6, marginBottom: 0, paddingLeft: 18 }}>
+        {lookahead.reasons.map((r, i) => (
+          <li key={i} style={{ marginBottom: 4 }}>
+            {r}
+          </li>
+        ))}
+      </ul>
+    </div>
+
+    <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
+      Gentle nudge: If possible, keeping a small buffer can help with surprises (repairs, school costs) and future plans.
+    </div>
+
+    {lookahead.lowest < 0 && (
+      <div style={{ marginTop: 12, padding: 10, borderRadius: 12, border: "1px solid rgba(255,170,0,0.35)", background: "rgba(255,170,0,0.10)" }}>
+        <div style={{ fontWeight: 900 }}>⚠️ Tight period detected</div>
+        <div style={{ fontSize: 12, opacity: 0.85, marginTop: 6 }}>
+          Based on what’s entered (including spending + goals if included), the projection dips below {formatMoney(0)} at least once in the next {effectiveLookaheadWeeks} weeks.
+        </div>
+      </div>
+    )}
+  </div>
+</div>
             </>
           )}
         </div>
