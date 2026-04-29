@@ -2278,7 +2278,7 @@ const [whatIfChecked, setWhatIfChecked] = useState(false);
       }
     }
 
-    // Allow negative values here (overdraft-aware). Safe number is still clamped separately.
+    // Allow negative values here (overdraft-aware). 🛡️ Safe number is still clamped separately.
     const mayBeAvailable = lowest;
 
     // Confidence: completeness + spending recency
@@ -3247,7 +3247,7 @@ const labelStyle = {
       boxSizing: "border-box",
     }}
   >
-    <div style={{ fontSize: 12, opacity: 0.8 }}>Window</div>
+    <div style={{ fontSize: 12, opacity: 0.8 }}>📅 Window</div>
     <div style={{ fontWeight: 800 }}>
       {displayUKDate(startDate)} → {displayUKDate(lookahead.windowEndISO)}
     </div>
@@ -3261,7 +3261,7 @@ const labelStyle = {
         opacity: 0.65,
       }}
     >
-      Available now
+      💷 Available now
     </div>
 
     <div
@@ -3277,7 +3277,7 @@ const labelStyle = {
     </div>
 
     <div style={{ marginTop: 10, fontSize: 12, letterSpacing: 0.3, textTransform: "uppercase", opacity: 0.65 }}>
-      Safe number
+      🛡️ Safe number
     </div>
     <div style={{ fontSize: 32, fontWeight: 900, letterSpacing: -0.6, marginTop: 2, color: "rgba(241,245,249,0.98)" }}>
       {formatMoney(Math.max(0, lookahead.mayBeAvailable - 250).toFixed(2))}
@@ -3308,12 +3308,12 @@ const labelStyle = {
       boxSizing: "border-box",
     }}
   >
-    <div style={{ fontSize: 12, opacity: 0.8 }}>Lowest projected balance in next {effectiveLookaheadWeeks} weeks</div>
+    <div style={{ fontSize: 12, opacity: 0.8 }}>📉 Lowest projected balance in next {effectiveLookaheadWeeks} weeks</div>
     <div style={{ fontWeight: 800 }}>
       {formatMoney(lookahead.lowest.toFixed(2))} on {displayUKDate(lookahead.lowestISO)}
     </div>
 
-    <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>Confidence</div>
+    <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>✅ Confidence</div>
     <div style={{ fontWeight: 800 }}>{lookahead.confidence}</div>
 
     <div style={{ marginTop: 8, fontSize: 12, opacity: 0.8 }}>
@@ -5196,7 +5196,7 @@ const labelStyle = {
     </div>
 
     <div style={{ display: "grid", gap: 4 }}>
-      <div style={{ fontSize: 12, opacity: 0.75 }}>Available now</div>
+      <div style={{ fontSize: 12, opacity: 0.75 }}>💷 Available now</div>
       <div style={{ fontSize: 28, fontWeight: 900 }}>
         {formatMoney(lookahead.mayBeAvailable.toFixed(2))}
       </div>
@@ -5206,7 +5206,7 @@ const labelStyle = {
         {formatMoney(Math.max(0, lookahead.mayBeAvailable - 250).toFixed(2))}
       </div>
       <div style={{ fontSize: 12, opacity: 0.78, lineHeight: 1.35 }}>
-        Safe number leaves a small {formatMoney(250)} buffer aside.
+        🛡️ Safe number leaves a small {formatMoney(250)} buffer aside.
       </div>
 
       <div style={{ fontSize: 12, opacity: 0.8 }}>
@@ -6302,7 +6302,7 @@ return (
               </p>
 
               <ul style={{ marginTop: 8 }}>
-                <li><strong>Available now</strong> — a realistic view of what you can access within the look‑ahead window.</li>
+                <li><strong>💷 Available now</strong> — a realistic view of what you can access within the look‑ahead window.</li>
                 <li><strong>Safe to spend</strong> — a cautious guide that keeps a small fixed buffer aside for surprises.</li>
                 <li><strong>Lowest projected balance</strong> — the tightest point in the next few weeks, so nothing catches you out.</li>
               </ul>
